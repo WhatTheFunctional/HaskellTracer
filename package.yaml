@@ -23,6 +23,7 @@ dependencies:
 - base >= 4.7 && < 5
 - linear >= 1.20.8
 - JuicyPixels >= 3.3.3
+- numeric-limits >= 0.1.0.0
 
 library:
   source-dirs: src

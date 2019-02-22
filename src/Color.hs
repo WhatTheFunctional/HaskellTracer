@@ -10,7 +10,7 @@ class Color a where
     backgroundColor :: a
     toPixelRGB8 :: a -> PixelRGB8
 
-data RGB f = RGB (V3 f)
+data RGB f = RGB (V3 f) deriving (Show, Eq)
 
 instance (RealFrac f, Floating f) => Color (RGB f) where
     backgroundColor = RGB (V3 0.0 0.0 0.0)

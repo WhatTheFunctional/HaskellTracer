@@ -46,11 +46,11 @@ rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Sphere sphereOrigin s
             in if (nearZero t)
                then Nothing
                else if t > 0.0
-                    then Just (Intersection {intersectionPoint = ro .+^ (rd ^* t), intersectionNormal = co ^+^ (rd ^* (t / sphereRadius)), tMin = t})
+                    then Just (Intersection {intersectionPoint = ro .+^ (rd ^* t), intersectionNormal = normalize (co ^+^ (rd ^* (t / sphereRadius))), tMin = t})
                     else let bigT = (e - b) / denom
                          in if (nearZero bigT)
                             then Nothing
                             else if bigT > 0.0
-                                 then Just (Intersection {intersectionPoint = ro .+^ (rd ^* bigT), intersectionNormal = co ^+^ (rd ^* (bigT / sphereRadius)), tMin = bigT})
+                                 then Just (Intersection {intersectionPoint = ro .+^ (rd ^* bigT), intersectionNormal = normalize (co ^+^ (rd ^* (bigT / sphereRadius))), tMin = bigT})
                                  else Nothing
 
