@@ -1,6 +1,6 @@
 module Lib
-    ( someFunc
+    ( trace
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+trace :: IO ()
+trace = putStrLn "HaskellTracer"
