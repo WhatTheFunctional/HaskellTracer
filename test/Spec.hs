@@ -1,12 +1,13 @@
 import Linear
 import Linear.Affine
 
-import Screen
 import Color
 import Geometry
 import Object
-import Camera
 import Trace
+import Lens
+import Camera
+import Screen
 
 testSphere :: (Epsilon f, Ord f, Floating f) => Shape f
 testSphere = Sphere (P (V3 0.0 0.0 100.0)) 100.0
@@ -45,10 +46,11 @@ testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
-                (orthoNaiveTraceGenerator
+                (naiveTraceGenerator
                  (testPinkRGB :: RGB Float)
                  (ViewPlane {width = 1024, height = 768, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
-                 [ColorObject testSphere (testRedRGB :: RGB Float)])
+                 [ColorObject testSphere (testRedRGB :: RGB Float)]
+                 orthoLens)
                 1024
                 768
 

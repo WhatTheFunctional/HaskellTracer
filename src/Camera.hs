@@ -1,6 +1,8 @@
 module Camera
     ( ViewPlane (..)
     , Camera (..)
+    , viewToWorld
+    , computeCameraTransforms
     ) where
 
 import Linear
@@ -34,3 +36,4 @@ computeCameraTransforms camera =
     let vW = viewToWorld camera
         invVW = inv44 vW
     in (CameraTransforms {v2w = vW, w2v = invVW})
+
