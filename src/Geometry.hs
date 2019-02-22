@@ -10,25 +10,27 @@ import Linear.Vector
 import Linear.Affine
 import Linear.Metric
 
-data Ray a = Ray { rayOrigin :: Point V3 a
-                 , rayDirection :: V3 a
+data Ray f = Ray { rayOrigin :: Point V3 f
+                 , rayDirection :: V3 f
                  } deriving (Show, Eq)
 
-data Object a = Plane (Point V3 a) (V3 a) -- Point and normal
-              | Sphere (Point V3 a) a -- Origin and radius
+data Object f = Plane (Point V3 f) (V3 f) -- Point and normal
+              | Sphere (Point V3 f) f -- Origin and radius
               deriving (Show, Eq)
 
-data Intersection a = Intersection { intersectionPoint :: Point V3 a
-                                   , intersectionNormal :: V3 a
-                                   , tMin :: a
+data Intersection f = Intersection { intersectionPoint :: Point V3 f
+                                   , intersectionNormal :: V3 f
+                                   , tMin :: f
                                    } deriving (Show, Eq)
 
-rayIntersection :: (Ord a, Epsilon a, Floating a) => Ray a -> Object a -> Maybe (Intersection a)
+rayIntersection :: (Ord f, Epsilon f, Floating f) => Ray f -> Object f -> Maybe (Intersection f)
+
 rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Plane planePoint planeNormal) = 
     let t = (planePoint .-. ro) `dot` (planeNormal ^/ (rd `dot` planeNormal))
     in if (nearZero t)
        then Nothing
        else Just (Intersection {intersectionPoint = ro .+^ (rd ^* t), intersectionNormal = planeNormal, tMin = t})
+
 rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Sphere sphereOrigin sphereRadius) =
     let co = ro .-. sphereOrigin
         a = rd `dot` rd
