@@ -1,6 +1,7 @@
 module Geometry
     ( Ray (..)
-    , Object (..)
+    , Shape (..)
+    , Intersection (..)
     , rayIntersection
     ) where
 
@@ -14,16 +15,16 @@ data Ray f = Ray { rayOrigin :: Point V3 f
                  , rayDirection :: V3 f
                  } deriving (Show, Eq)
 
-data Object f = Plane (Point V3 f) (V3 f) -- Point and normal
-              | Sphere (Point V3 f) f -- Origin and radius
-              deriving (Show, Eq)
+data Shape f = Plane (Point V3 f) (V3 f) -- Point and normal
+             | Sphere (Point V3 f) f -- Origin and radius
+             deriving (Show, Eq)
 
 data Intersection f = Intersection { intersectionPoint :: Point V3 f
                                    , intersectionNormal :: V3 f
                                    , tMin :: f
                                    } deriving (Show, Eq)
 
-rayIntersection :: (Ord f, Epsilon f, Floating f) => Ray f -> Object f -> Maybe (Intersection f)
+rayIntersection :: (Ord f, Epsilon f, Floating f) => Ray f -> Shape f -> Maybe (Intersection f)
 
 rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Plane planePoint planeNormal) = 
     let t = (planePoint .-. ro) `dot` (planeNormal ^/ (rd `dot` planeNormal))
