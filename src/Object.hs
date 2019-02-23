@@ -4,7 +4,6 @@ module Object
     ) where
 
 import Linear
-import Linear.Affine
 
 import Geometry
 import Color

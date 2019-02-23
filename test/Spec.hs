@@ -2,6 +2,7 @@ import Linear
 import Linear.Affine
 
 import Color
+import Ray
 import Geometry
 import Object
 import Trace

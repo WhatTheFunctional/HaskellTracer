@@ -4,9 +4,10 @@ module Trace
     ) where
 
 import Numeric.Limits
-import Linear
+import Linear.Epsilon
+
 import Color
-import Geometry
+import Ray
 import Object
 
 traceRays :: (Epsilon f, Ord f, Floating f, RealFloat f, Color c) => (Ray f -> c) -> [Ray f] -> c -> c

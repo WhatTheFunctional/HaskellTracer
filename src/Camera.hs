@@ -1,19 +1,11 @@
 module Camera
-    ( ViewPlane (..)
-    , Camera (..)
+    ( Camera (..)
     , CameraTransforms (..)
     , computeCameraTransforms
     ) where
 
 import Linear
 import Linear.Affine
-
-data ViewPlane f i = ViewPlane { width :: i
-                               , height :: i
-                               , pixelSize :: f
-                               , gamma :: f
-                               , invGamma :: f
-                               }
 
 data Camera f = Camera (Point V3 f) (V3 f) (V3 f) -- Origin, look, and up
               deriving (Show, Eq)
