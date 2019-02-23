@@ -28,6 +28,9 @@ testGreenRGB = makeRGB 0.0 1.0 0.0
 testPinkRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
 testPinkRGB = makeRGB 1.0 0.0 1.0
 
+testCamera :: (RealFrac f, Epsilon f, Ord f, Floating f) => Camera f
+testCamera = Camera (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0) (V3 0.0 1.0 0.0)
+
 testRayIntersectSphere :: IO ()
 testRayIntersectSphere = do
     putStrLn "-- Testing Ray Sphere Intersection"
@@ -49,6 +52,7 @@ testRenderBasicSphere =
        writePNG "basic_sphere.png"
                 (listTraceGenerator
                  (testPinkRGB :: RGB Float)
+                 testCamera
                  (ViewPlane {width = 1024, height = 768, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
                  [ColorObject testSphere (testRedRGB :: RGB Float)]
                  orthoLensSingle)

@@ -3,6 +3,7 @@ module Geometry
     , Shape (..)
     , Intersection (..)
     , rayIntersection
+    , transformShape
     ) where
 
 import Linear
@@ -54,3 +55,10 @@ rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Sphere sphereOrigin s
                                  then Just (Intersection {intersectionPoint = ro .+^ (rd ^* bigT), intersectionNormal = normalize (co ^+^ (rd ^* (bigT / sphereRadius))), tMin = bigT})
                                  else Nothing
 
+transformShape :: (Ord f, Epsilon f, Floating f) => M44 f -> M44 f -> Shape f -> Shape f
+
+transformShape viewToWorld worldToView (Plane planePoint planeNormal) =
+    Plane (P (normalizePoint (worldToView !* (point (unP planePoint))))) (normalizePoint ((vector planeNormal) *! viewToWorld))
+    
+transformShape _ worldToView (Sphere sphereOrigin sphereRadius) =
+    Sphere (P (normalizePoint (worldToView !* (point (unP sphereOrigin))))) sphereRadius

@@ -1,7 +1,7 @@
 module Camera
     ( ViewPlane (..)
     , Camera (..)
-    , viewToWorld
+    , CameraTransforms (..)
     , computeCameraTransforms
     ) where
 
