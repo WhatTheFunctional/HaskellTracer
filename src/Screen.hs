@@ -19,6 +19,6 @@ listTraceGenerator bgColor camera (ViewPlane {width = w, height = h, pixelSize =
                  rays = lensFunction tx ty
                  (CameraTransforms {v2w = viewToWorld, w2v = worldToView}) = computeCameraTransforms camera
                  transformedObjects = fmap (transformObject viewToWorld worldToView) objects
-                 color = traceRays (listTrace bgColor transformedObjects) rays blackColor
+                 color = traceRays (listTrace bgColor transformedObjects) rays blankColor
              in toPixelRGB8 color)
 

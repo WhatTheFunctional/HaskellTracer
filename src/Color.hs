@@ -8,7 +8,7 @@ import Codec.Picture
 import Linear
 
 class Color a where
-    blackColor :: a
+    blankColor :: a
     backgroundColor :: a
     mixColors :: a -> a -> a
     toPixelRGB8 :: a -> PixelRGB8
@@ -20,7 +20,7 @@ makeRGB :: (RealFrac f, Floating f) => f -> f -> f -> RGB f
 makeRGB r g b = RGB (V3 r g b) 1.0
 
 instance (RealFrac f, Floating f) => Color (RGB f) where
-    blackColor = RGB (V3 0.0 0.0 0.0) 1.0
+    blankColor = RGB (V3 0.0 0.0 0.0) 0.0
     backgroundColor = RGB (V3 0.0 0.0 0.0) 1.0
     mixColors (RGB (V3 r0 g0 b0) w0) (RGB (V3 r1 g1 b1) w1) =
         let mixWeight = w0 + w1
