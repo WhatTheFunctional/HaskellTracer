@@ -8,6 +8,7 @@ import Trace
 import Lens
 import Camera
 import Screen
+import IO
 
 testSphere :: (Epsilon f, Ord f, Floating f) => Shape f
 testSphere = Sphere (P (V3 0.0 0.0 100.0)) 100.0
@@ -18,14 +19,14 @@ testHitRay = Ray (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0)
 testMissRay :: (Epsilon f, Ord f, Floating f) => Ray f
 testMissRay = Ray (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0)
 
-testRedRGB :: (Epsilon f, Ord f, Floating f) => RGB f
-testRedRGB = (RGB (V3 1.0 0.0 0.0))
+testRedRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
+testRedRGB = makeRGB 1.0 0.0 0.0
 
-testGreenRGB :: (Epsilon f, Ord f, Floating f) => RGB f
-testGreenRGB = (RGB (V3 0.0 1.0 0.0))
+testGreenRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
+testGreenRGB = makeRGB 0.0 1.0 0.0
 
-testPinkRGB :: (Epsilon f, Ord f, Floating f) => RGB f
-testPinkRGB = (RGB (V3 1.0 0.0 1.0))
+testPinkRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
+testPinkRGB = makeRGB 1.0 0.0 1.0
 
 testRayIntersectSphere :: IO ()
 testRayIntersectSphere = do
@@ -40,17 +41,17 @@ testRayMissSphere = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ naiveTrace (testPinkRGB :: RGB Float) (testHitRay :: Ray Float) [ColorObject testSphere (testRedRGB :: RGB Float)]
+    putStrLn $ show $ listTrace (testPinkRGB :: RGB Float) [ColorObject testSphere (testRedRGB :: RGB Float)] (testHitRay :: Ray Float)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
-                (naiveTraceGenerator
+                (listTraceGenerator
                  (testPinkRGB :: RGB Float)
                  (ViewPlane {width = 1024, height = 768, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
                  [ColorObject testSphere (testRedRGB :: RGB Float)]
-                 orthoLens)
+                 orthoLensSingle)
                 1024
                 768
 
