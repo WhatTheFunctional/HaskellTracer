@@ -1,6 +1,6 @@
 module Screen
     ( ViewPlane (..)
-    , listTraceGenerator
+    , pixelTraceGenerator
     ) where
 
 import Linear
@@ -19,12 +19,11 @@ data ViewPlane f i = ViewPlane { width :: i
                                , invGamma :: f
                                }
 
-listTraceGenerator :: (Epsilon f, Ord f, Floating f, RealFloat f, Integral i, Color c) => c -> Camera f -> ViewPlane f i -> [Object f c] -> (f -> f -> [Ray f]) -> (Int -> Int -> c)
-listTraceGenerator bgColor camera (ViewPlane {width = w, height = h, pixelSize = s, gamma = g, invGamma = ig}) objects lensFunction =
+pixelTraceGenerator :: (Epsilon f, Ord f, Floating f, RealFloat f, Integral i, Color c) => (M44 f -> M44 f -> c -> Ray f -> c) -> c -> Camera f -> ViewPlane f i -> (f -> f -> [Ray f]) -> (Int -> Int -> c)
+pixelTraceGenerator traceFunction bgColor camera (ViewPlane {width = w, height = h, pixelSize = s, gamma = g, invGamma = ig}) lensFunction =
     (\pixelX pixelY -> let worldX = (((fromIntegral w) / 2.0) - (fromIntegral pixelX) + 0.5) * s
                            worldY = ((fromIntegral pixelY) - ((fromIntegral h) / 2.0) + 0.5) * s
                            rays = lensFunction worldX worldY
                            (CameraTransforms {v2w = viewToWorld, w2v = worldToView}) = computeCameraTransforms camera
-                           transformedObjects = fmap (transformObject viewToWorld worldToView) objects
-                       in traceRays (listTrace bgColor (ListScene transformedObjects)) rays blankColor)
+                       in traceRays (traceFunction viewToWorld worldToView bgColor) rays blankColor)
 

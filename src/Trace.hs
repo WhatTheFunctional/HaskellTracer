@@ -4,6 +4,7 @@ module Trace
     ) where
 
 import Numeric.Limits
+import Linear.Matrix
 import Linear.Epsilon
 
 import Color
@@ -17,17 +18,19 @@ traceRays traceFunction (ray : rays) currentColor =
     let traceColor = (traceFunction ray)
     in traceRays traceFunction rays (mixColors traceColor currentColor)
 
-listTraceIter :: (Epsilon f, Ord f, Floating f, Color c) => c -> ListScene f c -> f -> Ray f -> c
-listTraceIter traceColor (ListScene []) _ _ = traceColor
-listTraceIter traceColor (ListScene ((ColorObject shape objectColor) : objects)) traceTMin ray =
+listTraceIter :: (Epsilon f, Ord f, Floating f, Color c) => ListScene f c -> c -> f -> Ray f -> c
+listTraceIter (ListScene []) traceColor _ _ = traceColor
+listTraceIter (ListScene ((ColorObject shape objectColor) : objects)) traceColor traceTMin ray =
     case rayIntersection ray shape of
-        Nothing -> listTraceIter traceColor (ListScene objects) traceTMin ray
+        Nothing -> listTraceIter (ListScene objects) traceColor traceTMin ray
         Just (Intersection {tMin = tm}) -> if tm < traceTMin
-                                           then listTraceIter objectColor (ListScene objects) tm ray
-                                           else listTraceIter traceColor (ListScene objects) traceTMin ray
+                                           then listTraceIter (ListScene objects) objectColor tm ray
+                                           else listTraceIter (ListScene objects) traceColor traceTMin ray
 
 -- List tracer iterates through a list of objects
 -- List tracer only detects hits and returns a color, it doesn't perform lighting
-listTrace :: (Epsilon f, Ord f, Floating f, RealFloat f, Color c) => c -> ListScene f c -> Ray f -> c
-listTrace bgColor listScene = listTraceIter bgColor listScene maxValue
+listTrace :: (Epsilon f, Ord f, Floating f, RealFloat f, Color c) => ListScene f c -> M44 f -> M44 f -> c -> Ray f -> c
+listTrace (ListScene objects) viewToWorld worldToView bgColor = 
+    let transformedObjects = fmap (transformObject viewToWorld worldToView) objects
+    in listTraceIter (ListScene transformedObjects) bgColor maxValue
 

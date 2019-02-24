@@ -46,17 +46,17 @@ testRayMissSphere = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (testPinkRGB :: RGB Float) (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) (testHitRay :: Ray Float)
+    putStrLn $ show $ listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
-                (listTraceGenerator
+                (pixelTraceGenerator
+                 (listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]))
                  (testPinkRGB :: RGB Float)
                  testCamera
                  (ViewPlane {width = 1024, height = 768, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
-                 [ColorObject testSphere (testRedRGB :: RGB Float)]
                  orthoLensSingle)
                 1024
                 768
