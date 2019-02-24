@@ -9,6 +9,7 @@ import Trace
 import Lens
 import Camera
 import Screen
+import Scene
 import IO
 
 testSphere :: (Epsilon f, Ord f, Floating f) => Shape f
@@ -45,7 +46,7 @@ testRayMissSphere = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (testPinkRGB :: RGB Float) [ColorObject testSphere (testRedRGB :: RGB Float)] (testHitRay :: Ray Float)
+    putStrLn $ show $ listTrace (testPinkRGB :: RGB Float) (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) (testHitRay :: Ray Float)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =

@@ -10,6 +10,7 @@ import Camera
 import Ray
 import Object
 import Trace
+import Scene
 
 data ViewPlane f i = ViewPlane { width :: i
                                , height :: i
@@ -25,5 +26,5 @@ listTraceGenerator bgColor camera (ViewPlane {width = w, height = h, pixelSize =
                            rays = lensFunction worldX worldY
                            (CameraTransforms {v2w = viewToWorld, w2v = worldToView}) = computeCameraTransforms camera
                            transformedObjects = fmap (transformObject viewToWorld worldToView) objects
-                       in traceRays (listTrace bgColor transformedObjects) rays blankColor)
+                       in traceRays (listTrace bgColor (ListScene transformedObjects)) rays blankColor)
 
