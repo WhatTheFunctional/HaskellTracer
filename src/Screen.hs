@@ -19,11 +19,14 @@ data ViewPlane f i = ViewPlane { width :: i
                                , invGamma :: f
                                }
 
-pixelTraceGenerator :: (Epsilon f, Ord f, Floating f, RealFloat f, Integral i, Color c) => (M44 f -> M44 f -> c -> Ray f -> c) -> c -> Camera f -> ViewPlane f i -> (f -> f -> [Ray f]) -> (Int -> Int -> c)
+pixelTraceGenerator :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f, Integral i) => (M44 f -> M44 f -> c -> Ray f -> c) -> c -> Camera f -> ViewPlane f i -> (f -> f -> [Ray f]) -> (Int, Int, (Int -> Int -> c))
 pixelTraceGenerator traceFunction bgColor camera (ViewPlane {width = w, height = h, pixelSize = s, gamma = g, invGamma = ig}) lensFunction =
-    (\pixelX pixelY -> let worldX = (((fromIntegral w) / 2.0) - (fromIntegral pixelX) + 0.5) * s
-                           worldY = ((fromIntegral pixelY) - ((fromIntegral h) / 2.0) + 0.5) * s
-                           rays = lensFunction worldX worldY
-                           (CameraTransforms {v2w = viewToWorld, w2v = worldToView}) = computeCameraTransforms camera
-                       in traceRays (traceFunction viewToWorld worldToView bgColor) rays blankColor)
+    (fromIntegral w,
+     fromIntegral h,
+     (\pixelX pixelY -> let worldX = ((fromIntegral pixelX) - ((fromIntegral w) / 2.0) + 0.5) * s
+                            worldY = (((fromIntegral h) / 2.0) - (fromIntegral pixelY) + 0.5) * s
+                            (CameraTransforms {w2v = worldToView, normalMatrix = nMatrix}) = computeCameraTransforms camera
+                            rays = lensFunction worldX worldY
+                            --transformedRays = fmap (transformRay worldToView nMatrix) rays
+                        in traceRays (traceFunction worldToView nMatrix bgColor) rays blankColor))
 

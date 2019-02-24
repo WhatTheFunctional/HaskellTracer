@@ -12,41 +12,80 @@ import Screen
 import Scene
 import IO
 
-testSphere :: (Epsilon f, Ord f, Floating f) => Shape f
+-- Test objects
+
+testSphere :: (Floating f, Ord f) => Shape f
 testSphere = Sphere (P (V3 0.0 0.0 100.0)) 100.0
 
-testHitRay :: (Epsilon f, Ord f, Floating f) => Ray f
+testPlane :: (Floating f, Ord f) => Shape f
+testPlane = Plane (P (V3 0.0 0.0 10.0)) (V3 0.0 1.0 1.0)
+
+testMissPlane :: (Floating f, Ord f) => Shape f
+testMissPlane = Plane (P (V3 0.0 (-10.0) 0.0)) (V3 0.0 1.0 0.0)
+
+testHitRay :: (Floating f, Ord f) => Ray f
 testHitRay = Ray (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0)
 
-testMissRay :: (Epsilon f, Ord f, Floating f) => Ray f
-testMissRay = Ray (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0)
+testMissRay :: (Floating f, Ord f) => Ray f
+testMissRay = Ray (P (V3 0.0 1000.0 0.0)) (V3 0.0 0.0 1.0)
 
-testRedRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
+testRedRGB :: (Floating f, Ord f, RealFrac f) => RGB f
 testRedRGB = makeRGB 1.0 0.0 0.0
 
-testGreenRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
+testGreenRGB :: (Floating f, Ord f, RealFrac f) => RGB f
 testGreenRGB = makeRGB 0.0 1.0 0.0
 
-testPinkRGB :: (RealFrac f, Epsilon f, Ord f, Floating f) => RGB f
+testPinkRGB :: (Floating f, Ord f, RealFrac f) => RGB f
 testPinkRGB = makeRGB 1.0 0.0 1.0
 
-testCamera :: (RealFrac f, Epsilon f, Ord f, Floating f) => Camera f
+testCamera :: (Floating f, Ord f, RealFrac f) => Camera f
 testCamera = Camera (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0) (V3 0.0 1.0 0.0)
+
+-- Test scene
+
+suffernCamera :: (Floating f, Ord f, RealFrac f) => Camera f
+suffernCamera = Camera (P (V3 0.0 0.0 100.0)) (V3 0.0 0.0 (-1.0)) (V3 0.0 1.0 0.0)
+
+suffernSphere0 :: (Floating f, Ord f, RealFrac f) => Object f (RGB f)
+suffernSphere0 = ColorObject (Sphere (P (V3 0.0 (-25.0) 0.0)) 80.0) (makeRGB 1.0 0.0 0.0)
+
+suffernSphere1 :: (Floating f, Ord f, RealFrac f) => Object f (RGB f)
+suffernSphere1 = ColorObject (Sphere (P (V3 0.0 30 0.0)) 60.0) (makeRGB 1.0 1.0 0.0)
+
+suffernPlane :: (Floating f, Ord f, RealFrac f) => Object f (RGB f)
+suffernPlane = ColorObject (Plane (P (V3 0.0 0.0 0.0)) (V3 0.0 1.0 1.0)) (makeRGB 0.0 0.3 0.0)
+
+-- Test functions
 
 testRayIntersectSphere :: IO ()
 testRayIntersectSphere = do
     putStrLn "-- Testing Ray Sphere Intersection"
     putStrLn $ show $ rayIntersection (testHitRay :: Ray Float) testSphere
 
+testRayIntersectPlane :: IO ()
+testRayIntersectPlane = do
+    putStrLn "-- Testing Ray Plane Intersection"
+    putStrLn $ show $ rayIntersection (testHitRay :: Ray Float) testPlane
+
 testRayMissSphere :: IO ()
 testRayMissSphere = do
     putStrLn "-- Testing Ray Sphere Miss"
     putStrLn $ show $ rayIntersection (testMissRay :: Ray Float) testSphere
 
+testRayMissPlane :: IO ()
+testRayMissPlane = do
+    putStrLn "-- Testing Ray Plane Miss"
+    putStrLn $ show $ rayIntersection (testHitRay :: Ray Float) testMissPlane
+
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
     putStrLn $ show $ listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
+
+testNaiveTracePlane :: IO ()
+testNaiveTracePlane = do
+    putStrLn "-- Testing Naive Trace with a Sphere"
+    putStrLn $ show $ listTrace (ListScene [ColorObject testPlane (testRedRGB :: RGB Float)]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
@@ -58,12 +97,35 @@ testRenderBasicSphere =
                  testCamera
                  (ViewPlane {width = 1024, height = 768, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
                  orthoLensSingle)
-                1024
-                768
+
+testRenderBasicScene :: IO ()
+testRenderBasicScene =
+    do putStrLn "-- Writing Suffern scene image to suffern_scene.png"
+       writePNG "suffern_scene.png"
+                (pixelTraceGenerator
+                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]))
+                 (testPinkRGB :: RGB Float)
+                 suffernCamera
+                 (ViewPlane {width = 200, height = 200, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
+                 orthoLensSingle)
 
 main :: IO ()
 main = do putStrLn "Running tests"
+          putStrLn "--Suffern camera"
+          putStrLn $ show $ suffernCamera
+          let ct@(CameraTransforms {w2v = worldToView, normalMatrix = nM}) = (computeCameraTransforms suffernCamera)
+              s0@(ColorObject (Sphere (P s0Position) s0Radius) s0Color) = suffernSphere0
+          putStrLn "--Suffern transforms"
+          putStrLn $ show $ ct
+          putStrLn "--Suffern sphere"
+          putStrLn $ show $ s0
+          putStrLn "--Suffern sphere view space center"
+          putStrLn $ show $ (worldToView !* (point s0Position))
           testRayIntersectSphere
+          testRayIntersectPlane
           testRayMissSphere
+          testRayMissPlane
           testNaiveTraceSphere
+          testNaiveTracePlane
           testRenderBasicSphere
+          testRenderBasicScene

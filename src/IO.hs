@@ -17,8 +17,9 @@ instance (RealFrac f, Floating f) => ConvertsToPixelRGB8 (RGB f) where
 generatorToPixelRGB8 :: (ConvertsToPixelRGB8 c, Color c) => (Int -> Int -> c) -> (Int -> Int -> PixelRGB8)
 generatorToPixelRGB8 generator = \worldX worldY -> toPixelRGB8 (generator worldX worldY)
 
-writePNG :: (ConvertsToPixelRGB8 c, Color c) => String -> (Int -> Int -> c) -> Int -> Int -> IO ()
-writePNG fileName generator width height =
-    let pixelRGB8Generator = generatorToPixelRGB8 generator
+writePNG :: (ConvertsToPixelRGB8 c, Color c) => String -> (Int, Int, (Int -> Int -> c)) -> IO ()
+writePNG fileName generator =
+    let (width, height, generatorFunction) = generator
+        pixelRGB8Generator = generatorToPixelRGB8 generatorFunction
     in savePngImage fileName (ImageRGB8 (generateImage pixelRGB8Generator width height))
 
