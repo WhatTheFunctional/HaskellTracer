@@ -2,7 +2,6 @@ module Ray
     ( Ray (..)
     , Intersection (..)
     , rayIntersection
-    , transformRay
     ) where
 
 import Numeric.Limits
@@ -52,9 +51,4 @@ rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Sphere sphereCenter s
                     in if bigT > rayEpsilon
                        then Just (Intersection {intersectionPoint = ro .+^ (rd ^* bigT), intersectionNormal = normalize ((temp ^+^ (rd ^* bigT)) ^/ sphereRadius), tMin = bigT})
                        else Nothing
-
-transformRay :: (Epsilon f, Floating f, Ord f, RealFloat f) => M44 f -> M44 f -> Ray f -> Ray f
-transformRay worldToView normalMatrix (Ray {rayOrigin = ro, rayDirection = rd}) =
-    let (V4 nx ny nz nw) = normalMatrix !* (vector rd)
-    in Ray {rayOrigin = P (normalizePoint (worldToView !* (point (unP ro)))), rayDirection = (V3 nx ny nz)}
 

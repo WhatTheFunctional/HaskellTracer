@@ -7,6 +7,7 @@ import Geometry
 import Object
 import Trace
 import Lens
+import Sampling
 import Camera
 import Screen
 import Scene
@@ -95,8 +96,8 @@ testRenderBasicSphere =
                  (listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]))
                  (testPinkRGB :: RGB Float)
                  testCamera
-                 (ViewPlane {width = 1024, height = 768, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
-                 orthoLensSingle)
+                 (1024, 768, 1.0 :: Float, 1.0)
+                 (singleSampling orthoLensSingle))
 
 testRenderBasicScene :: IO ()
 testRenderBasicScene =
@@ -106,8 +107,19 @@ testRenderBasicScene =
                  (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]))
                  (testPinkRGB :: RGB Float)
                  suffernCamera
-                 (ViewPlane {width = 200, height = 200, pixelSize = 1.0 :: Float, gamma = 1.0, invGamma = 1.0})
-                 orthoLensSingle)
+                 (200, 200, 1.0 :: Float, 1.0)
+                 (singleSampling orthoLensSingle))
+
+testRender4xSuperSamplingBasicScene :: IO ()
+testRender4xSuperSamplingBasicScene =
+    do putStrLn "-- Writing Suffern scene image with 4x supersampling to suffern_scene_4x.png"
+       writePNG "suffern_scene_4x.png"
+                (pixelTraceGenerator
+                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]))
+                 (testPinkRGB :: RGB Float)
+                 suffernCamera
+                 (200, 200, 1.0 :: Float, 1.0)
+                 (grid4xSampling orthoLensSingle))
 
 main :: IO ()
 main = do putStrLn "Running tests"
@@ -129,3 +141,4 @@ main = do putStrLn "Running tests"
           testNaiveTracePlane
           testRenderBasicSphere
           testRenderBasicScene
+          testRender4xSuperSamplingBasicScene
