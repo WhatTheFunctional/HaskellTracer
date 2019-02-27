@@ -12,6 +12,7 @@ import Color
 import Ray
 import Object
 import Scene
+import Light
 
 initialIntersection :: (Epsilon f, Floating f, Ord f, RealFloat f) => Intersection f
 initialIntersection = Intersection {intersectionPoint = (P (V3 0.0 0.0 0.0)), intersectionNormal = (V3 0.0 0.0 1.0), tMin = maxValue}
@@ -34,9 +35,10 @@ listTraceIter (ListScene ((ColorObject shape objectColor) : objects)) (traceInte
 
 -- List tracer iterates through a list of objects
 -- List tracer only detects hits and returns a color, it doesn't perform lighting
-listTrace :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => ListScene f c -> M44 f -> M44 f -> c -> Ray f -> c
-listTrace (ListScene objects) viewToWorld worldToView bgColor ray = 
-    let transformedObjects = fmap (transformObject viewToWorld worldToView) objects
+listTrace :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => ListScene f c -> [Light f] -> M44 f -> M44 f -> c -> Ray f -> c
+listTrace (ListScene objects) lights worldToView normalMatrix bgColor ray = 
+    let transformedObjects = fmap (transformObject worldToView normalMatrix) objects
+        transformedLights = fmap (transformLight worldToView normalMatrix) lights
         (traceIntersection, traceColor) = listTraceIter (ListScene transformedObjects) (initialIntersection, bgColor) ray
     in traceColor
 

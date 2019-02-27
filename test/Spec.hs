@@ -81,19 +81,19 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
+    putStrLn $ show $ listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) [] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (ListScene [ColorObject testPlane (testRedRGB :: RGB Float)]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
+    putStrLn $ show $ listTrace (ListScene [ColorObject testPlane (testRedRGB :: RGB Float)])  [] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]))
+                 (listTrace (ListScene [ColorObject testSphere (testRedRGB :: RGB Float)]) [])
                  (testPinkRGB :: RGB Float)
                  testCamera
                  (1024, 768, 1.0 :: Float, 1.0)
@@ -104,7 +104,7 @@ testRenderBasicScene =
     do putStrLn "-- Writing Suffern scene image to suffern_scene.png"
        writePNG "suffern_scene.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]))
+                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [])
                  (testPinkRGB :: RGB Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
@@ -115,7 +115,7 @@ testRender4xSuperSamplingBasicScene =
     do putStrLn "-- Writing Suffern scene image with 4x supersampling to suffern_scene_4x.png"
        writePNG "suffern_scene_4x.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]))
+                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [])
                  (testPinkRGB :: RGB Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
