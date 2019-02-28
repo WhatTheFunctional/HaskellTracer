@@ -1,5 +1,5 @@
 module Shading
-    ( shadeAllLights
+    ( shadeLight
     , colorShader
     ) where
 
@@ -11,20 +11,16 @@ import Color
 import Material
 import Light
 
-shadeAllLights :: (Epsilon f, Floating f, Ord f) => Intersection f -> Material f -> (V3 f -> Material f -> V3 f -> V3 f -> Color f) -> Ray f -> [Light f] -> Color f
+shadeLight :: (Epsilon f, Floating f, Ord f) => Point V3 f -> V3 f -> Material f -> (V3 f -> Material f -> V3 f -> V3 f -> Color f) -> Ray f -> Ray f -> Color f -> Color f
 
-shadeAllLights intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal}) (ColorMaterial color) shader ray@(Ray {rayDirection = rd}) lights =
-    foldr (\light accumulatedColor ->
-               let lightRay@(Ray {rayDirection = lrd}) = getLightRay light point
-               in (shader normal (ColorMaterial color) lrd rd) ^+^ accumulatedColor) (pure 0) lights
+shadeLight point normal (ColorMaterial color) shader ray@(Ray {rayDirection = rd}) lightRay@(Ray {rayDirection = lrd}) lightColor =
+   shader normal (ColorMaterial color) lrd rd
 
-shadeAllLights intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal}) material shader ray@(Ray {rayDirection = rd}) lights =
-    foldr (\light accumulatedColor ->
-               let lightRay@(Ray {rayDirection = lrd}) = getLightRay light point
-                   ndotrd = normal `dot` lrd
-               in if ndotrd < 0
-                  then accumulatedColor
-                  else (((shader normal material lrd rd) ^*^ (getLightColor light)) ^* ndotrd) ^+^ accumulatedColor) (pure 0) lights
+shadeLight point normal material shader ray@(Ray {rayDirection = rd}) lightRay@(Ray {rayDirection = lrd}) lightColor =
+   let ndotrd = normal `dot` lrd
+   in if ndotrd < 0
+      then pure 0
+      else ((shader normal material lrd rd) ^*^ lightColor) ^* ndotrd
 
 -- Shaders compute f
 

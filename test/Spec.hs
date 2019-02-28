@@ -74,7 +74,7 @@ litSuffernPlane :: (Fractional f) => Object f
 litSuffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (MatteMaterial (RGB 0 0.3 0) 1) colorShader
 
 suffernLight :: (Num f) => Light f
-suffernLight = PointLight (P (V3 80 80 0)) (RGB 1 1 1)
+suffernLight = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
 
 -- Test functions
 
@@ -101,19 +101,24 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) [EnvironmentLight testBlackRGB] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    putStrLn $ show $ (intersection, material)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) [EnvironmentLight testBlackRGB] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    putStrLn $ show $ (intersection, material)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) [EnvironmentLight testBlackRGB])
+                 listTrace
+                 traceAllLights
+                 (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader])
+                 [EnvironmentLight testBlackRGB]
                  (testPinkRGB :: Color Float)
                  testCamera
                  (1024, 768, 1.0 :: Float, 1.0)
@@ -124,7 +129,10 @@ testRenderBasicScene =
     do putStrLn "-- Writing Suffern scene image to suffern_scene.png"
        writePNG "suffern_scene.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [EnvironmentLight testBlackRGB])
+                 listTrace
+                 traceAllLights
+                 (ListScene [suffernSphere0, suffernSphere1, suffernPlane])
+                 [EnvironmentLight testBlackRGB]
                  (testPinkRGB :: Color Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
@@ -135,7 +143,10 @@ testRender4xSuperSamplingBasicScene =
     do putStrLn "-- Writing Suffern scene image with 4x supersampling to suffern_scene_4x.png"
        writePNG "suffern_scene_4x.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [EnvironmentLight testBlackRGB])
+                 listTrace
+                 traceAllLights
+                 (ListScene [suffernSphere0, suffernSphere1, suffernPlane])
+                 [EnvironmentLight testBlackRGB]
                  (testPinkRGB :: Color Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
@@ -146,7 +157,10 @@ testRenderLitScene =
     do putStrLn "-- Writing lit Suffern scene image to lit_suffern_scene.png"
        writePNG "lit_suffern_scene.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane]) [suffernLight])
+                 listTrace
+                 traceAllLights
+                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane])
+                 [suffernLight]
                  (testPinkRGB :: Color Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)

@@ -27,7 +27,7 @@ getLightColor :: Light f -> Color f
 getLightColor (EnvironmentLight color) = color
 getLightColor (PointLight _ color) = color
 
-getLightRay :: (Epsilon f, Floating f) => Light f -> Point V3 f -> Ray f
---getLightRay (EnvironmentLight _) position = Ray {rayOrigin = position, rayDirection = (V3 0 0 1)} -- TODO: When sampling is added, this will be a spherical direction
-getLightRay (PointLight lightPosition _) position = Ray {rayOrigin = position, rayDirection = normalize (lightPosition .-. position)}
+getLightRay :: (Epsilon f, Floating f) => Point V3 f -> Light f -> Ray f
+getLightRay position (EnvironmentLight _) = Ray {rayOrigin = position, rayDirection = (V3 0 0 1)} -- TODO: When sampling is added, this will be a spherical direction
+getLightRay position (PointLight lightPosition _) = Ray {rayOrigin = position, rayDirection = normalize (lightPosition .-. position)}
     
