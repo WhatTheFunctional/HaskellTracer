@@ -77,7 +77,10 @@ suffernLight0 :: (Num f) => Light f
 suffernLight0 = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
 
 suffernLight1 :: (Num f) => Light f
-suffernLight1 = PointLight (P (V3 0 (-40) 100)) (RGB 1 1 1)
+suffernLight1 = PointLight (P (V3 0 (-40) 100)) (RGB 1 0 1)
+
+suffernLight2 :: (Fractional f) => Light f
+suffernLight2 = DirectionalLight (V3 1 (-1) (-1)) (RGB 0.5 0.5 0)
 
 -- Test functions
 
@@ -163,7 +166,7 @@ testRenderLitScene =
                  listTrace
                  traceAllLights
                  (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane])
-                 [suffernLight0, suffernLight1]
+                 [suffernLight0, suffernLight1, suffernLight2]
                  (testPinkRGB :: Color Double)
                  suffernCamera
                  (200, 200, 1.0 :: Double, 1.0)
