@@ -164,7 +164,7 @@ testRenderLitScene =
                  (testPinkRGB :: Color Double)
                  suffernCamera
                  (200, 200, 1.0 :: Double, 1.0)
-                 (singleSampling orthoLensSingle))
+                 (grid4xSampling orthoLensSingle))
 
 main :: IO ()
 main = do putStrLn "Running tests"
