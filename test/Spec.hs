@@ -64,17 +64,20 @@ suffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (ColorMaterial (RGB 0 0.
 
 -- Lit version of Suffern scene
 
-litSuffernSphere0 :: (Num f) => Object f
-litSuffernSphere0 = Object (Sphere (P (V3 0 (-25) 0)) 80) (MatteMaterial (RGB 1 0 0) 1) colorShader
+litSuffernSphere0 :: (Floating f) => Object f
+litSuffernSphere0 = Object (Sphere (P (V3 0 (-25) 0)) 80) (MatteMaterial (RGB 1 0 0) 1) lambertShader
 
-litSuffernSphere1 :: (Num f) => Object f
-litSuffernSphere1 = Object (Sphere (P (V3 0 30 0)) 60) (MatteMaterial (RGB 1 1 0) 1) colorShader
+litSuffernSphere1 :: (Floating f) => Object f
+litSuffernSphere1 = Object (Sphere (P (V3 0 30 0)) 60) (MatteMaterial (RGB 1 1 0) 1) lambertShader
 
-litSuffernPlane :: (Fractional f) => Object f
-litSuffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (MatteMaterial (RGB 0 0.3 0) 1) colorShader
+litSuffernPlane :: (Floating f) => Object f
+litSuffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (MatteMaterial (RGB 0 0.3 0) 1) lambertShader
 
-suffernLight :: (Num f) => Light f
-suffernLight = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
+suffernLight0 :: (Num f) => Light f
+suffernLight0 = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
+
+suffernLight1 :: (Num f) => Light f
+suffernLight1 = PointLight (P (V3 0 (-80) 100)) (RGB 1 1 1)
 
 -- Test functions
 
@@ -160,7 +163,7 @@ testRenderLitScene =
                  listTrace
                  traceAllLights
                  (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane])
-                 [suffernLight]
+                 [suffernLight0, suffernLight1]
                  (testPinkRGB :: Color Double)
                  suffernCamera
                  (200, 200, 1.0 :: Double, 1.0)

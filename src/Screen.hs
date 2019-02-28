@@ -12,10 +12,11 @@ import Scene
 import Light
 import Color
 import Material
+import Shading
 
 pixelTraceGenerator :: (Floating f, Integral i) =>
-                       (Scene f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))) ->
-                       ((Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))) -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f)) -> Color f) ->
+                       (Scene f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))) ->
+                       ((Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))) -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f)) -> Color f) ->
                        Scene f -> [Light f] -> Color f -> Camera f -> (i, i, f, f) -> (f -> f -> f -> [Ray f]) -> (Int, Int, (Int -> Int -> Color f))
 pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (width, height, pixelSize, gamma) samplingFunction =
     (fromIntegral width,

@@ -11,7 +11,7 @@ import Color
 import Material
 import Shading
 
-data Object f = Object (Shape f) (Material f) (V3 f -> Material f -> V3 f -> V3 f -> Color f)
+data Object f = Object (Shape f) (Material f) (ShadePoint f -> Color f)
 
 instance (Show f) => Show (Object f) where
     show (Object shape material shaderFunction) = "Object (" ++ (show shape) ++ ") (" ++ (show material) ++ ")"
