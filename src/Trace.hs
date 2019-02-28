@@ -37,9 +37,9 @@ traceAllLights traceFunction lights bgColor ray (intersection@(Intersection {int
     in if traceTMin == maxValue
        then bgColor
        else foldr (\light accumulatedColor ->
-                       let lightRay = innerGetLightRay light
+                       let (lightRay, lightT) = innerGetLightRay light
                            (Intersection {tMin = lightTMin}, _, _) = traceFunction lightRay
-                       in if lightTMin == maxValue
+                       in if lightT < lightTMin
                           then (shadeLight point normal material shader ray lightRay (getLightColor light)) ^+^ accumulatedColor
                           else accumulatedColor) (pure 0) lights
 

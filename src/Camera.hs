@@ -24,7 +24,7 @@ worldToView (Camera cameraOrigin cameraLook cameraUp) =
         translation = V4 (-(cr `dot` co)) (-(cu `dot` co)) (-(cl `dot` co)) 1
     in V4 (vector cr) (vector cu) (vector cl) translation -- Column major
 
-computeCameraTransforms :: (Fractional f, Num f) => Camera f -> CameraTransforms f
+computeCameraTransforms :: (Fractional f) => Camera f -> CameraTransforms f
 computeCameraTransforms camera =
     let wV = transpose (worldToView camera) -- Column major
         invWV = transpose (inv44 wV) -- Column major

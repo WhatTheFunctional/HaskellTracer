@@ -122,7 +122,7 @@ testRenderBasicSphere =
                  (testPinkRGB :: Color Float)
                  testCamera
                  (1024, 768, 1.0 :: Float, 1.0)
-                 (singleSampling orthoLensSingle))
+                 (singleSampling orthoLens))
 
 testRenderBasicScene :: IO ()
 testRenderBasicScene =
@@ -136,7 +136,7 @@ testRenderBasicScene =
                  (testPinkRGB :: Color Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
-                 (singleSampling orthoLensSingle))
+                 (singleSampling orthoLens))
 
 testRender4xSuperSamplingBasicScene :: IO ()
 testRender4xSuperSamplingBasicScene =
@@ -150,7 +150,7 @@ testRender4xSuperSamplingBasicScene =
                  (testPinkRGB :: Color Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
-                 (grid4xSampling orthoLensSingle))
+                 (grid4xSampling orthoLens))
 
 testRenderLitScene :: IO ()
 testRenderLitScene =
@@ -164,7 +164,7 @@ testRenderLitScene =
                  (testPinkRGB :: Color Double)
                  suffernCamera
                  (200, 200, 1.0 :: Double, 1.0)
-                 (grid4xSampling orthoLensSingle))
+                 (grid4xSampling orthoLens))
 
 main :: IO ()
 main = do putStrLn "Running tests"

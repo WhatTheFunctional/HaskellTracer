@@ -5,11 +5,12 @@ module Light
     , getLightRay
     ) where
 
-import Color
-import Ray
-
+import Numeric.Limits
 import Linear
 import Linear.Affine
+
+import Color
+import Ray
 
 data Light f = EnvironmentLight (Color f)
                | PointLight (Point V3 f) (Color f)
@@ -27,7 +28,9 @@ getLightColor :: Light f -> Color f
 getLightColor (EnvironmentLight color) = color
 getLightColor (PointLight _ color) = color
 
-getLightRay :: (Epsilon f, Floating f) => Point V3 f -> Light f -> Ray f
-getLightRay position (EnvironmentLight _) = Ray {rayOrigin = position, rayDirection = (V3 0 0 1)} -- TODO: When sampling is added, this will be a spherical direction
-getLightRay position (PointLight lightPosition _) = Ray {rayOrigin = position, rayDirection = normalize (lightPosition .-. position)}
+getLightRay :: (Epsilon f, RealFloat f) => Point V3 f -> Light f -> (Ray f, f)
+getLightRay position (EnvironmentLight _) = (Ray {rayOrigin = position, rayDirection = (V3 0 0 1)}, maxValue) -- TODO: When sampling is added, this will be a spherical direction
+getLightRay position (PointLight lightPosition _) = 
+    let rayDirection = lightPosition .-. position
+    in (Ray {rayOrigin = position, rayDirection = normalize rayDirection}, sqrt (rayDirection `dot` rayDirection)) 
     
