@@ -6,6 +6,6 @@ import Color
 
 data Material f = ColorMaterial (Color f) -- Color (No shading)
                   | MatteMaterial (Color f) f -- Diffuse, kD
-                  | PlasticMaterial (Color f) f (Color f) f -- Diffuse, kD, Specular, kS
+                  | PlasticMaterial (Color f) f (Color f) f f -- Diffuse, kD, Specular, kS, kExp
                   deriving (Show, Eq)
 

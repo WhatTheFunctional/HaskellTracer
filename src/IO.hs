@@ -7,9 +7,15 @@ import Linear
 
 import Color
 
+
+clampComponent :: (RealFrac f, Integral i) => f -> i
+clampComponent x = round (max 0.0 (min 255.0 (x * 255)))
+
 toPixelRGB8 :: (RealFrac f) => Color f -> PixelRGB8
 toPixelRGB8 (RGB r g b) =
-    PixelRGB8 (fromIntegral (round (r * 255.0))) (fromIntegral (round (g * 255.0))) (fromIntegral (round (b * 255.0)))
+    PixelRGB8 (fromIntegral (clampComponent r))
+              (fromIntegral (clampComponent g))
+              (fromIntegral (clampComponent b))
 
 generatorToPixelRGB8 :: (RealFrac f) => (Int -> Int -> Color f) -> (Int -> Int -> PixelRGB8)
 generatorToPixelRGB8 generator = \worldX worldY -> toPixelRGB8 (generator worldX worldY)

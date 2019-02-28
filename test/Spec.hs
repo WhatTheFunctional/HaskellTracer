@@ -64,8 +64,8 @@ suffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (ColorMaterial (RGB 0 0.
 
 -- Lit version of Suffern scene
 
-litSuffernSphere0 :: (Floating f) => Object f
-litSuffernSphere0 = Object (Sphere (P (V3 0 (-25) 0)) 80) (MatteMaterial (RGB 1 0 0) 1) lambertShader
+litSuffernSphere0 :: (Floating f, Ord f) => Object f
+litSuffernSphere0 = Object (Sphere (P (V3 0 (-25) 0)) 80) (PlasticMaterial (RGB 1 0 0) 1 (RGB 0.8 0 0.8) 1 2.5) phongShader
 
 litSuffernSphere1 :: (Floating f) => Object f
 litSuffernSphere1 = Object (Sphere (P (V3 0 30 0)) 60) (MatteMaterial (RGB 1 1 0) 1) lambertShader
@@ -77,7 +77,7 @@ suffernLight0 :: (Num f) => Light f
 suffernLight0 = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
 
 suffernLight1 :: (Num f) => Light f
-suffernLight1 = PointLight (P (V3 0 (-80) 100)) (RGB 1 1 1)
+suffernLight1 = PointLight (P (V3 0 (-40) 100)) (RGB 1 1 1)
 
 -- Test functions
 
