@@ -4,20 +4,42 @@ module Shading
     ) where
 
 import Linear
+import Linear.Affine
 
 import Ray
 import Color
 import Material
 import Light
 
-shadeAllLights :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => Intersection f -> Material f c -> (Intersection f -> Material f c -> Ray f -> Ray f -> c) -> Ray f -> [Light f c] -> c
-shadeAllLights intersection@(Intersection {intersectionPoint = point}) material shader ray lights =
-    foldr (\light accumulatedColor -> mixColors (shader intersection material ray (getLightRay light point)) accumulatedColor) blankColor lights
+shadeAllLights :: (Epsilon f, Floating f, Ord f) => Intersection f -> Material f -> (V3 f -> Material f -> V3 f -> V3 f -> Color f) -> Ray f -> [Light f] -> Color f
 
--- Shaders compute rho
+shadeAllLights intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal}) (ColorMaterial color) shader ray@(Ray {rayDirection = rd}) lights =
+    foldr (\light accumulatedColor ->
+               let lightRay@(Ray {rayDirection = lrd}) = getLightRay light point
+               in (shader normal (ColorMaterial color) lrd rd) ^+^ accumulatedColor) (pure 0) lights
 
-colorShader :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => Intersection f -> Material f c -> Ray f -> Ray f -> c
-colorShader intersection (ColorMaterial color) rayIn rayOut = color
-colorShader intersection (MatteMaterial diffuse) rayIn rayOut = diffuse
-colorShader intersection (PlasticMaterial diffuse specular) rayIn rayOut = diffuse
+shadeAllLights intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal}) material shader ray@(Ray {rayDirection = rd}) lights =
+    foldr (\light accumulatedColor ->
+               let lightRay@(Ray {rayDirection = lrd}) = getLightRay light point
+                   ndotrd = normal `dot` lrd
+               in if ndotrd < 0
+                  then accumulatedColor
+                  else (((shader normal material lrd rd) ^*^ (getLightColor light)) ^* ndotrd) ^+^ accumulatedColor) (pure 0) lights
+
+-- Shaders compute f
+
+colorShader :: V3 f -> Material f -> V3 f -> V3 f -> Color f
+colorShader normal (ColorMaterial color) wIn wOut = color
+colorShader normal (MatteMaterial diffuse _) wIn wOut = diffuse
+colorShader normal (PlasticMaterial diffuse _ _ _) wIn wOut = diffuse
+
+lambertF :: (Floating f) => Color f -> f -> Color f
+lambertF diffuse kD =
+    let invPi = 1.0 / pi
+    in diffuse ^* (kD * invPi)
+
+lambertShader :: (Floating f) => V3 f -> Material f -> V3 f -> V3 f -> Color f
+lambertShader normal (ColorMaterial color) wIn wOut = color
+lambertShader normal (MatteMaterial diffuse kD) wIn wOut = lambertF diffuse kD
+lambertShader normal (PlasticMaterial diffuse kD _ _) wIn wOut = lambertF diffuse kD
 

@@ -4,5 +4,5 @@ module Scene
 
 import Object
 
-data ListScene f c = ListScene [Object f c] deriving (Show)
+data ListScene f = ListScene [Object f] deriving (Show)
 

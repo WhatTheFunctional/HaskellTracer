@@ -11,11 +11,11 @@ import Color
 import Material
 import Shading
 
-data Object f c = Object (Shape f) (Material f c) (Intersection f -> Material f c -> Ray f -> Ray f -> c)
+data Object f = Object (Shape f) (Material f) (V3 f -> Material f -> V3 f -> V3 f -> Color f)
 
-instance (Show f, Show c) => Show (Object f c) where
+instance (Show f) => Show (Object f) where
     show (Object shape material shaderFunction) = "Object (" ++ (show shape) ++ ") (" ++ (show material) ++ ")"
 
-transformObject :: (Floating f, Ord f) => M44 f -> M44 f -> Object f c -> Object f c
+transformObject :: (Fractional f) => M44 f -> M44 f -> Object f -> Object f
 transformObject viewToWorld normalMatrix (Object shape material shader) = Object (transformShape viewToWorld normalMatrix shape) material shader
 
