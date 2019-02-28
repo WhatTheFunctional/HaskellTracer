@@ -10,7 +10,7 @@ import Color
 class ConvertsToPixelRGB8 a where
     toPixelRGB8 :: a -> PixelRGB8
 
-instance (RealFrac f, Floating f) => ConvertsToPixelRGB8 (RGB f) where
+instance (RealFloat f, Floating f) => ConvertsToPixelRGB8 (RGB f) where
     toPixelRGB8 (RGB (V3 r g b) _) =
         PixelRGB8 (fromIntegral (round (r * 255.0))) (fromIntegral (round (g * 255.0))) (fromIntegral (round (b * 255.0)))
 

@@ -12,6 +12,7 @@ import Camera
 import Screen
 import Scene
 import IO
+import Light
 import Material
 import Shading
 
@@ -32,30 +33,33 @@ testHitRay = Ray (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0)
 testMissRay :: (Floating f, Ord f) => Ray f
 testMissRay = Ray (P (V3 0.0 1000.0 0.0)) (V3 0.0 0.0 1.0)
 
-testRedRGB :: (Floating f, Ord f, RealFrac f) => RGB f
+testBlackRGB :: (Floating f, Ord f, RealFloat f) => RGB f
+testBlackRGB = makeRGB 0.0 0.0 0.0
+
+testRedRGB :: (Floating f, Ord f, RealFloat f) => RGB f
 testRedRGB = makeRGB 1.0 0.0 0.0
 
-testGreenRGB :: (Floating f, Ord f, RealFrac f) => RGB f
+testGreenRGB :: (Floating f, Ord f, RealFloat f) => RGB f
 testGreenRGB = makeRGB 0.0 1.0 0.0
 
-testPinkRGB :: (Floating f, Ord f, RealFrac f) => RGB f
+testPinkRGB :: (Floating f, Ord f, RealFloat f) => RGB f
 testPinkRGB = makeRGB 1.0 0.0 1.0
 
-testCamera :: (Floating f, Ord f, RealFrac f) => Camera f
+testCamera :: (Floating f, Ord f, RealFloat f) => Camera f
 testCamera = Camera (P (V3 0.0 0.0 0.0)) (V3 0.0 0.0 1.0) (V3 0.0 1.0 0.0)
 
 -- Test scene
 
-suffernCamera :: (Floating f, Ord f, RealFrac f) => Camera f
+suffernCamera :: (Floating f, Ord f, RealFloat f) => Camera f
 suffernCamera = Camera (P (V3 0.0 0.0 100.0)) (V3 0.0 0.0 (-1.0)) (V3 0.0 1.0 0.0)
 
-suffernSphere0 :: (Floating f, Ord f, RealFrac f) => Object f (RGB f)
+suffernSphere0 :: (Epsilon f, Floating f, Ord f, RealFloat f) => Object f (RGB f)
 suffernSphere0 = Object (Sphere (P (V3 0.0 (-25.0) 0.0)) 80.0) (ColorMaterial (makeRGB 1.0 0.0 0.0)) colorShader
 
-suffernSphere1 :: (Floating f, Ord f, RealFrac f) => Object f (RGB f)
+suffernSphere1 :: (Epsilon f, Floating f, Ord f, RealFloat f) => Object f (RGB f)
 suffernSphere1 = Object (Sphere (P (V3 0.0 30 0.0)) 60.0) (ColorMaterial (makeRGB 1.0 1.0 0.0)) colorShader
 
-suffernPlane :: (Floating f, Ord f, RealFrac f) => Object f (RGB f)
+suffernPlane :: (Epsilon f, Floating f, Ord f, RealFloat f) => Object f (RGB f)
 suffernPlane = Object (Plane (P (V3 0.0 0.0 0.0)) (V3 0.0 1.0 1.0)) (ColorMaterial (makeRGB 0.0 0.3 0.0)) colorShader
 
 -- Test functions
@@ -83,19 +87,19 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: RGB Float)) colorShader]) [] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
+    putStrLn $ show $ listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: RGB Float)) colorShader]) [AmbientLight testBlackRGB] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    putStrLn $ show $ listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: RGB Float)) colorShader]) [] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
+    putStrLn $ show $ listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: RGB Float)) colorShader]) [AmbientLight testBlackRGB] (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: RGB Float) (testHitRay :: Ray Float)
 
 testRenderBasicSphere :: IO ()
 testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: RGB Float)) colorShader]) [])
+                 (listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: RGB Float)) colorShader]) [AmbientLight testBlackRGB])
                  (testPinkRGB :: RGB Float)
                  testCamera
                  (1024, 768, 1.0 :: Float, 1.0)
@@ -106,7 +110,7 @@ testRenderBasicScene =
     do putStrLn "-- Writing Suffern scene image to suffern_scene.png"
        writePNG "suffern_scene.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [])
+                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [AmbientLight testBlackRGB])
                  (testPinkRGB :: RGB Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
@@ -117,7 +121,7 @@ testRender4xSuperSamplingBasicScene =
     do putStrLn "-- Writing Suffern scene image with 4x supersampling to suffern_scene_4x.png"
        writePNG "suffern_scene_4x.png"
                 (pixelTraceGenerator
-                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [])
+                 (listTrace (ListScene [suffernSphere0, suffernSphere1, suffernPlane]) [AmbientLight testBlackRGB])
                  (testPinkRGB :: RGB Float)
                  suffernCamera
                  (200, 200, 1.0 :: Float, 1.0)
@@ -126,8 +130,8 @@ testRender4xSuperSamplingBasicScene =
 main :: IO ()
 main = do putStrLn "Running tests"
           putStrLn "--Suffern camera"
-          putStrLn $ show $ suffernCamera
-          let ct@(CameraTransforms {w2v = worldToView, normalMatrix = nM}) = (computeCameraTransforms suffernCamera)
+          putStrLn $ show $ (suffernCamera :: Camera Float)
+          let ct@(CameraTransforms {w2v = worldToView, normalMatrix = nM}) = (computeCameraTransforms (suffernCamera :: Camera Float))
               s0@(Object (Sphere (P s0Position) s0Radius) s0Color colorShader) = suffernSphere0
           putStrLn "--Suffern transforms"
           putStrLn $ show $ ct

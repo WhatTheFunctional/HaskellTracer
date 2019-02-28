@@ -4,19 +4,25 @@ module Light
     , getLightRay
     ) where
 
+import Color
 import Ray
 
 import Linear
 import Linear.Affine
 
-data Light f = PointLight (Point V3 f)
-             deriving (Show, Eq)
+data Light f c = AmbientLight c
+               | PointLight (Point V3 f) c
+               deriving (Show, Eq)
 
-transformLight :: (Ord f, Floating f) => M44 f -> M44 f -> Light f -> Light f
+transformLight :: (Color c, Ord f, Floating f) => M44 f -> M44 f -> Light f c -> Light f c
 
-transformLight worldToView _ (PointLight lightPoint) =
-    PointLight (P (normalizePoint (worldToView !* (point (unP lightPoint)))))
+transformLight _ _ (AmbientLight lightColor) =
+    AmbientLight lightColor
 
-getLightRay :: (Epsilon f, Floating f, Ord f, RealFloat f) => Light f -> Point V3 f -> Ray f
-getLightRay (PointLight lightPosition) position = Ray {rayOrigin = position, rayDirection = normalize (lightPosition .-. position)}
+transformLight worldToView _ (PointLight lightPoint lightColor) =
+    PointLight (P (normalizePoint (worldToView !* (point (unP lightPoint))))) lightColor
+
+getLightRay :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => Light f c -> Point V3 f -> Ray f
+getLightRay (AmbientLight _) position = Ray {rayOrigin = position, rayDirection = (V3 0.0 0.0 1.0)} -- TODO: When sampling is added, this will be a spherical direction
+getLightRay (PointLight lightPosition _) position = Ray {rayOrigin = position, rayDirection = normalize (lightPosition .-. position)}
     

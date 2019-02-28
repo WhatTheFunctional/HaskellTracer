@@ -14,10 +14,10 @@ class Color a where
 data RGB f = RGB (V3 f) f -- Triple + weight
            deriving (Show, Eq)
 
-makeRGB :: (RealFrac f, Floating f) => f -> f -> f -> RGB f
+makeRGB :: (RealFloat f, Floating f) => f -> f -> f -> RGB f
 makeRGB r g b = RGB (V3 r g b) 1.0
 
-instance (RealFrac f, Floating f) => Color (RGB f) where
+instance (RealFloat f, Floating f) => Color (RGB f) where
     blankColor = RGB (V3 0.0 0.0 0.0) 0.0
     backgroundColor = RGB (V3 0.0 0.0 0.0) 1.0
     mixColors (RGB (V3 r0 g0 b0) w0) (RGB (V3 r1 g1 b1) w1) =

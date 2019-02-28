@@ -25,7 +25,7 @@ traceRays traceFunction (ray : rays) currentColor =
     let traceColor = (traceFunction ray)
     in traceRays traceFunction rays (mixColors traceColor currentColor)
 
-listTraceIter :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => ListScene f c -> (Intersection f, Material f c, (Intersection f -> Material f c -> c)) -> Ray f -> (Intersection f, Material f c, (Intersection f -> Material f c -> c))
+listTraceIter :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => ListScene f c -> (Intersection f, Material f c, (Intersection f -> Material f c -> Ray f -> Ray f -> c)) -> Ray f -> (Intersection f, Material f c, (Intersection f -> Material f c -> Ray f -> Ray f -> c))
 listTraceIter (ListScene []) (traceIntersection, traceMaterial, traceShader) _ = (traceIntersection, traceMaterial, traceShader)
 listTraceIter (ListScene ((Object shape objectMaterial objectShader) : objects)) (traceIntersection@(Intersection {tMin = traceTMin}), traceMaterial, traceShader) ray =
     case rayIntersection ray shape of
@@ -37,11 +37,11 @@ listTraceIter (ListScene ((Object shape objectMaterial objectShader) : objects))
 
 -- List tracer iterates through a list of objects
 -- List tracer only detects hits and returns a color, it doesn't perform lighting
-listTrace :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => ListScene f c -> [Light f] -> M44 f -> M44 f -> c -> Ray f -> c
+listTrace :: (Color c, Epsilon f, Floating f, Ord f, RealFloat f) => ListScene f c -> [Light f c] -> M44 f -> M44 f -> c -> Ray f -> c
 listTrace (ListScene objects) lights worldToView normalMatrix bgColor ray = 
     let transformedObjects = fmap (transformObject worldToView normalMatrix) objects
         transformedLights = fmap (transformLight worldToView normalMatrix) lights
         (traceIntersection, traceMaterial, traceShader) = listTraceIter (ListScene transformedObjects) (initialIntersection, (ColorMaterial bgColor), colorShader) ray
-        traceColor = traceShader traceIntersection traceMaterial
+        traceColor = shadeAllLights traceIntersection traceMaterial traceShader ray lights
     in traceColor
 

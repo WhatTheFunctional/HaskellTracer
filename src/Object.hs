@@ -11,7 +11,7 @@ import Color
 import Material
 import Shading
 
-data Object f c = Object (Shape f) (Material f c) (Intersection f -> Material f c -> c)
+data Object f c = Object (Shape f) (Material f c) (Intersection f -> Material f c -> Ray f -> Ray f -> c)
 
 instance (Show f, Show c) => Show (Object f c) where
     show (Object shape material shaderFunction) = "Object (" ++ (show shape) ++ ") (" ++ (show material) ++ ")"
