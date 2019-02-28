@@ -101,13 +101,13 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testHitRay :: Ray Float)
     putStrLn $ show $ (intersection, material)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (identity :: M44 Float) (identity :: M44 Float) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testHitRay :: Ray Float)
     putStrLn $ show $ (intersection, material)
 
 testRenderBasicSphere :: IO ()

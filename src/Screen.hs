@@ -14,8 +14,8 @@ import Color
 import Material
 
 pixelTraceGenerator :: (Floating f, Integral i) =>
-                       (Scene f -> M44 f -> M44 f -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))) ->
-                       (Scene f -> [Light f] -> M44 f -> M44 f -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f)) -> Color f) ->
+                       (Scene f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))) ->
+                       (Scene f -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f)) -> Color f) ->
                        Scene f -> [Light f] -> Color f -> Camera f -> (i, i, f, f) -> (f -> f -> f -> [Ray f]) -> (Int, Int, (Int -> Int -> Color f))
 pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (width, height, pixelSize, gamma) samplingFunction =
     (fromIntegral width,
@@ -26,7 +26,7 @@ pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (
                             transformedScene = transformScene worldToView normalMatrix scene
                             transformedLights = fmap (transformLight worldToView normalMatrix) lights
                             rays = samplingFunction pixelSize worldX worldY
-                            innerTraceFunction = traceFunction transformedScene worldToView normalMatrix bgColor
-                            innerLightingFunction = lightingFunction transformedScene transformedLights worldToView normalMatrix bgColor
+                            innerTraceFunction = traceFunction transformedScene
+                            innerLightingFunction = lightingFunction transformedScene transformedLights bgColor
                         in (foldr (\ray accumulatedColor -> (innerLightingFunction ray (innerTraceFunction ray)) ^+^ accumulatedColor) (pure 0) rays) ^/ fromIntegral (length rays)))
 
