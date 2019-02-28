@@ -170,7 +170,7 @@ main :: IO ()
 main = do putStrLn "Running tests"
           putStrLn "--Suffern camera"
           putStrLn $ show $ (suffernCamera :: Camera Float)
-          let ct@(CameraTransforms {w2v = worldToView, normalMatrix = nM}) = (computeCameraTransforms (suffernCamera :: Camera Float))
+          let ct@(CameraTransforms {w2v = worldToView, nM = normalMatrix}) = (computeCameraTransforms (suffernCamera :: Camera Float))
               s0@(Object (Sphere (P s0Position) s0Radius) s0Color colorShader) = suffernSphere0
           putStrLn "--Suffern transforms"
           putStrLn $ show $ ct

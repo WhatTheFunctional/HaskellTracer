@@ -11,9 +11,8 @@ import Linear.Vector
 data Camera f = Camera (Point V3 f) (V3 f) (V3 f) -- Origin, look, and up
               deriving (Show, Eq)
 
--- View to world and world to view
-data CameraTransforms f = CameraTransforms { w2v :: M44 f
-                                           , normalMatrix :: M44 f
+data CameraTransforms f = CameraTransforms { w2v :: M44 f -- World to view
+                                           , nM :: M44 f -- Normal matrix
                                            } deriving (Show, Eq)
 
 worldToView :: (Num f) => Camera f -> M44 f
@@ -29,5 +28,5 @@ computeCameraTransforms :: (Fractional f, Num f) => Camera f -> CameraTransforms
 computeCameraTransforms camera =
     let wV = transpose (worldToView camera) -- Column major
         invWV = transpose (inv44 wV) -- Column major
-    in (CameraTransforms {w2v = wV, normalMatrix = invWV})
+    in (CameraTransforms {w2v = wV, nM = invWV})
 

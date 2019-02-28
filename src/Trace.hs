@@ -21,23 +21,21 @@ initialIntersection = Intersection {intersectionPoint = (P (V3 0 0 0)), intersec
 
 -- List tracer iterates through a list of objects
 -- List tracer only detects hits and returns a tuple containing the intersection point, material, and shader
-listTrace :: (Epsilon f, RealFloat f, Ord f) => ListScene f -> M44 f -> M44 f -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))
+listTrace :: (Epsilon f, RealFloat f, Ord f) => Scene f -> M44 f -> M44 f -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))
 listTrace (ListScene objects) worldToView normalMatrix bgColor ray = 
-    let transformedObjects = fmap (transformObject worldToView normalMatrix) objects
-    in foldr (\(Object shape objectMaterial objectShader) (intersection@(Intersection {tMin = traceTMin}), material, shader) ->
-                  case rayIntersection ray shape of
-                      Nothing -> (intersection, material, shader)
-                      Just objectIntersection@(Intersection {tMin = tm}) ->
-                          if tm < traceTMin
-                          then (objectIntersection, objectMaterial, objectShader)
-                          else (intersection, material, shader)) (initialIntersection, (ColorMaterial bgColor), colorShader) transformedObjects
+    foldr (\(Object shape objectMaterial objectShader) (intersection@(Intersection {tMin = traceTMin}), material, shader) ->
+               case rayIntersection ray shape of
+                   Nothing -> (intersection, material, shader)
+                   Just objectIntersection@(Intersection {tMin = tm}) ->
+                       if tm < traceTMin
+                       then (objectIntersection, objectMaterial, objectShader)
+                       else (intersection, material, shader)) (initialIntersection, (ColorMaterial bgColor), colorShader) objects
 
 traceAllLights :: (Epsilon f, RealFloat f, Ord f) => s -> [Light f] -> M44 f -> M44 f -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f)) -> Color f
 traceAllLights scene lights worldToView normalMatrix bgColor ray (intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal, tMin = traceTMin}), material, shader) =
-    let transformedLights = fmap (transformLight worldToView normalMatrix) lights
-        innerGetLightRay = getLightRay point
+    let innerGetLightRay = getLightRay point
     in if traceTMin == maxValue
        then bgColor
        else foldr (\light accumulatedColor ->
-                       (shadeLight point normal material shader ray (innerGetLightRay light) (getLightColor light)) ^+^ accumulatedColor) (pure 0) transformedLights
+                       (shadeLight point normal material shader ray (innerGetLightRay light) (getLightColor light)) ^+^ accumulatedColor) (pure 0) lights
 
