@@ -161,9 +161,9 @@ testRenderLitScene =
                  traceAllLights
                  (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane])
                  [suffernLight]
-                 (testPinkRGB :: Color Float)
+                 (testPinkRGB :: Color Double)
                  suffernCamera
-                 (200, 200, 1.0 :: Float, 1.0)
+                 (200, 200, 1.0 :: Double, 1.0)
                  (singleSampling orthoLensSingle))
 
 main :: IO ()

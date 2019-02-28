@@ -31,11 +31,16 @@ listTrace (ListScene objects) ray =
                        then (objectIntersection, objectMaterial, objectShader)
                        else (intersection, material, shader)) (initialIntersection, (ColorMaterial (pure 0)), colorShader) objects
 
-traceAllLights :: (Epsilon f, RealFloat f, Ord f) => s -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f)) -> Color f
-traceAllLights scene lights bgColor ray (intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal, tMin = traceTMin}), material, shader) =
+traceAllLights :: (Epsilon f, RealFloat f, Ord f) => (Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f))) -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (V3 f -> Material f -> V3 f -> V3 f -> Color f)) -> Color f
+traceAllLights traceFunction lights bgColor ray (intersection, ColorMaterial color, shader) = color
+traceAllLights traceFunction lights bgColor ray (intersection@(Intersection {intersectionPoint = point, intersectionNormal = normal, tMin = traceTMin}), material, shader) =
     let innerGetLightRay = getLightRay point
     in if traceTMin == maxValue
        then bgColor
        else foldr (\light accumulatedColor ->
-                       (shadeLight point normal material shader ray (innerGetLightRay light) (getLightColor light)) ^+^ accumulatedColor) (pure 0) lights
+                       let lightRay = innerGetLightRay light
+                           (Intersection {tMin = lightTMin}, _, _) = traceFunction lightRay
+                       in if lightTMin == maxValue
+                          then (shadeLight point normal material shader ray lightRay (getLightColor light)) ^+^ accumulatedColor
+                          else accumulatedColor) (pure 0) lights
 
