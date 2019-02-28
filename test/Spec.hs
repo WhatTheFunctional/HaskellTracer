@@ -62,6 +62,20 @@ suffernSphere1 = Object (Sphere (P (V3 0 30 0)) 60) (ColorMaterial (RGB 1 1 0)) 
 suffernPlane :: (Fractional f) => Object f
 suffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (ColorMaterial (RGB 0 0.3 0)) colorShader
 
+-- Lit version of Suffern scene
+
+litSuffernSphere0 :: (Num f) => Object f
+litSuffernSphere0 = Object (Sphere (P (V3 0 (-25) 0)) 80) (MatteMaterial (RGB 1 0 0) 1) colorShader
+
+litSuffernSphere1 :: (Num f) => Object f
+litSuffernSphere1 = Object (Sphere (P (V3 0 30 0)) 60) (MatteMaterial (RGB 1 1 0) 1) colorShader
+
+litSuffernPlane :: (Fractional f) => Object f
+litSuffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (MatteMaterial (RGB 0 0.3 0) 1) colorShader
+
+suffernLight :: (Num f) => Light f
+suffernLight = PointLight (P (V3 80 80 0)) (RGB 1 1 1)
+
 -- Test functions
 
 testRayIntersectSphere :: IO ()
@@ -127,6 +141,17 @@ testRender4xSuperSamplingBasicScene =
                  (200, 200, 1.0 :: Float, 1.0)
                  (grid4xSampling orthoLensSingle))
 
+testRenderLitScene :: IO ()
+testRenderLitScene =
+    do putStrLn "-- Writing lit Suffern scene image to lit_suffern_scene.png"
+       writePNG "lit_suffern_scene.png"
+                (pixelTraceGenerator
+                 (listTrace (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane]) [suffernLight])
+                 (testPinkRGB :: Color Float)
+                 suffernCamera
+                 (200, 200, 1.0 :: Float, 1.0)
+                 (singleSampling orthoLensSingle))
+
 main :: IO ()
 main = do putStrLn "Running tests"
           putStrLn "--Suffern camera"
@@ -148,3 +173,4 @@ main = do putStrLn "Running tests"
           testRenderBasicSphere
           testRenderBasicScene
           testRender4xSuperSamplingBasicScene
+          testRenderLitScene
