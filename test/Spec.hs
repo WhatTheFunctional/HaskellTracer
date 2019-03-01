@@ -79,6 +79,13 @@ litSuffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (MatteMaterial (RGB 0
 litSuffernAABB :: (Floating f) => Object f
 litSuffernAABB = Object (AABB identity (V3 (-65) (-65) (-65)) (V3 65 65 65)) (PlasticMaterial (RGB 0.2 0.2 0.5) 1 (RGB 0.4 0.4 0.8) 1 2.5) lambertShader
 
+litSuffernTriangle :: (Epsilon f, Floating f) => Object f
+litSuffernTriangle =
+    let v0 = (V3 0 0 0)
+        v1 = (V3 0 0 250)
+        v2 = (V3 200 250 250)
+    in Object (Triangle (P v0) (P v1) (P v2) (normalize ((v1 ^-^ v0) `cross` (v2 ^-^ v0)))) (PlasticMaterial (RGB 0.0 0.0 0.8) 1 (RGB 0.0 0.0 0.1) 1 2.5) lambertShader
+
 suffernLight0 :: (Num f) => Light f
 suffernLight0 = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
 
@@ -87,6 +94,9 @@ suffernLight1 = PointLight (P (V3 0 (-40) 100)) (RGB 1 0 1)
 
 suffernLight2 :: (Fractional f) => Light f
 suffernLight2 = DirectionalLight (V3 1 (-1) (-1)) (RGB 0.5 0.5 0)
+
+suffernLight3 :: (Fractional f) => Light f
+suffernLight3 = DirectionalLight (V3 0 (-1) 0) (RGB 1 1 1)
 
 -- Test functions
 
@@ -171,8 +181,8 @@ testRenderLitScene =
                 (pixelTraceGenerator
                  listTrace
                  traceAllLights
-                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane, litSuffernAABB])
-                 [suffernLight0, suffernLight1, suffernLight2]
+                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane, litSuffernAABB, litSuffernTriangle])
+                 [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
                  (testPinkRGB :: Color Double)
                  litSuffernCamera
                  (200, 200, 1.0 :: Double, 1.0)

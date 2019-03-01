@@ -8,6 +8,7 @@ import Numeric.Limits
 import Linear
 import Linear.Affine
 import Linear.Metric
+import Linear.Matrix
 
 import Geometry
 
@@ -86,4 +87,18 @@ rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (AABB frame v0 v1) =
             then Just (Intersection {intersectionPoint = ro .+^ (rd ^* t0), intersectionNormal = (V3 inX inY inZ), tMin = t0})
             else Just (Intersection {intersectionPoint = ro .+^ (rd ^* t1), intersectionNormal = (V3 outX outY outZ), tMin = t1})
        else Nothing
+
+rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Triangle (P v0) (P v1) (P v2) n) =
+    let aei = v0 ^-^ v1
+        bfj = v0 ^-^ v2
+        dhl = v0 ^-^ unP ro
+        m = transpose (V3 aei bfj rd)
+    in if det33 m == 0
+       then Nothing
+       else let (V3 beta gamma t) = (inv33 m) !* dhl
+            in if (beta < 0) || (gamma < 0) || (beta + gamma > 1)
+               then Nothing
+               else if t < rayEpsilon
+                    then Nothing
+                    else Just (Intersection {intersectionPoint = ro .+^ (rd ^* t), intersectionNormal = n, tMin = t})
     
