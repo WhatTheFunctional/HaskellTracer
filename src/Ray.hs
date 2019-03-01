@@ -102,3 +102,13 @@ rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Triangle (P v0) (P v1
                     then Nothing
                     else Just (Intersection {intersectionPoint = ro .+^ (rd ^* t), intersectionNormal = n, tMin = t})
     
+rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Disk c n r) =
+    let t = (c .-. ro) `dot` (n ^/ (rd `dot` n))
+    in if t < rayEpsilon
+       then Nothing
+       else let p = ro .+^ (rd ^* t)
+                dSquared = qdA c p
+            in if dSquared >= r * r
+               then Nothing
+               else Just (Intersection {intersectionPoint = p, intersectionNormal = n, tMin = t})
+

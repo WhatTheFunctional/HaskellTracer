@@ -13,6 +13,7 @@ data Shape f = Plane (Point V3 f) (V3 f) -- Point and normal
              | Sphere (Point V3 f) f -- Center and radius
              | AABB (M44 f) (V3 f) (V3 f) -- Frame, min, and max
              | Triangle (Point V3 f) (Point V3 f) (Point V3 f) (V3 f) -- Points, normal
+             | Disk (Point V3 f) (V3 f) f -- Point, normal, and radius
              deriving (Show, Eq)
 
 transformShape :: (Fractional f) => M44 f -> M44 f -> Shape f -> Shape f
@@ -31,6 +32,10 @@ transformShape worldToView normalMatrix (Triangle v0 v1 v2 n) =
     let (V4 nx ny nz nw) = normalMatrix !* (vector n)
     in Triangle (P (normalizePoint (worldToView !* (point (unP v0))))) (P (normalizePoint (worldToView !* (point (unP v1))))) (P (normalizePoint (worldToView !* (point (unP v2))))) (V3 nx ny nz)
 
+transformShape worldToView normalMatrix (Disk p n r) =
+    let (V4 nx ny nz nw) = normalMatrix !* (vector n)
+    in Disk (P (normalizePoint (worldToView !* (point (unP p))))) (V3 nx ny nz) r
+
 
 getShapeBoundingBox :: (RealFloat f) => Shape f -> Shape f
 
@@ -44,4 +49,6 @@ getShapeBoundingBox (Triangle (P v0) (P v1) (P v2) _) =
     let minValue = (\b0 b1 b2 -> min (min b0 b1) b2) <$> v0 <*> v1 <*> v2
         maxValue = (\b0 b1 b2 -> max (max b0 b1) b2) <$> v0 <*> v1 <*> v2
     in AABB identity minValue maxValue
+
+getShapeBoundingBox (Disk (P center) _ radius) = AABB identity (center ^-^ (pure radius)) (center ^+^ (pure radius))
 
