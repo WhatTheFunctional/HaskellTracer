@@ -50,7 +50,7 @@ testCamera = Camera (P (V3 0 0 0)) (V3 0 0 1) (V3 0 1 0)
 
 -- Test scene
 
-suffernCamera :: (Num f) => Camera f
+suffernCamera :: (Epsilon f, Floating f) => Camera f
 suffernCamera = Camera (P (V3 0 0 100)) (V3 0 0 (-1)) (V3 0 1 0)
 
 suffernSphere0 :: (Num f) => Object f
@@ -64,6 +64,9 @@ suffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (ColorMaterial (RGB 0 0.
 
 -- Lit version of Suffern scene
 
+litSuffernCamera :: (Epsilon f, Floating f) => Camera f
+litSuffernCamera = cameraLookAt (P (V3 20 50 100)) (V3 0 0 0) (V3 0 1 0)
+
 litSuffernSphere0 :: (Floating f, Ord f) => Object f
 litSuffernSphere0 = Object (Sphere (P (V3 0 (-25) 0)) 80) (PlasticMaterial (RGB 1 0 0) 1 (RGB 0.8 0 0.8) 1 2.5) phongShader
 
@@ -72,6 +75,9 @@ litSuffernSphere1 = Object (Sphere (P (V3 0 30 0)) 60) (MatteMaterial (RGB 1 1 0
 
 litSuffernPlane :: (Floating f) => Object f
 litSuffernPlane = Object (Plane (P (V3 0 0 0)) (V3 0 1 1)) (MatteMaterial (RGB 0 0.3 0) 1) lambertShader
+
+litSuffernAABB :: (Floating f) => Object f
+litSuffernAABB = Object (AABB identity (V3 (-65) (-65) (-65)) (V3 65 65 65)) (PlasticMaterial (RGB 0.2 0.2 0.5) 1 (RGB 0.4 0.4 0.8) 1 2.5) lambertShader
 
 suffernLight0 :: (Num f) => Light f
 suffernLight0 = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
@@ -165,10 +171,10 @@ testRenderLitScene =
                 (pixelTraceGenerator
                  listTrace
                  traceAllLights
-                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane])
+                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane, litSuffernAABB])
                  [suffernLight0, suffernLight1, suffernLight2]
                  (testPinkRGB :: Color Double)
-                 suffernCamera
+                 litSuffernCamera
                  (200, 200, 1.0 :: Double, 1.0)
                  (grid4xSampling orthoLens))
 
