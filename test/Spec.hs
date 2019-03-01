@@ -89,6 +89,9 @@ litSuffernTriangle =
 litSuffernDisk :: (Floating f) => Object f
 litSuffernDisk = Object (Disk (P (V3 0 100 0)) (V3 0 1 0) 40) (PlasticMaterial (RGB 0.0 0.8 0.8) 1 (RGB 0.0 1.0 1.0) 1 2.5) lambertShader
 
+litSuffernRectangle :: (Floating f) => Object f
+litSuffernRectangle = Object (Rectangle (P (V3 (-25) 120 (-25))) (V3 50 0 0) (V3 0 0 50) (V3 0 1 0)) (PlasticMaterial (RGB 0.8 0.0 0.8) 1 (RGB 1.0 0.0 1.0) 1 2.5) lambertShader
+
 suffernLight0 :: (Num f) => Light f
 suffernLight0 = PointLight (P (V3 80 80 100)) (RGB 1 1 1)
 
@@ -184,7 +187,7 @@ testRenderLitScene =
                 (pixelTraceGenerator
                  listTrace
                  traceAllLights
-                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane, litSuffernAABB, litSuffernTriangle, litSuffernDisk])
+                 (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane, litSuffernAABB, litSuffernTriangle, litSuffernDisk, litSuffernRectangle])
                  [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
                  (testPinkRGB :: Color Double)
                  litSuffernCamera

@@ -25,8 +25,8 @@ transformLight _ _ (EnvironmentLight lightColor) =
 transformLight worldToView _ (PointLight lightPoint lightColor) =
     PointLight (P (normalizePoint (worldToView !* (point (unP lightPoint))))) lightColor
 
-transformLight _ normalMatrix (DirectionalLight lightDirection lightColor) =
-    let (V4 nx ny nz nw) = normalMatrix !* (vector lightDirection)
+transformLight worldToView _ (DirectionalLight lightDirection lightColor) =
+    let (V4 nx ny nz nw) = worldToView !* (vector lightDirection)
     in DirectionalLight (V3 nx ny nz) lightColor
 
 getLightColor :: Light f -> Color f

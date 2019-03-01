@@ -112,3 +112,17 @@ rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Disk c n r) =
                then Nothing
                else Just (Intersection {intersectionPoint = p, intersectionNormal = n, tMin = t})
 
+rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Rectangle c e0 e1 n) =
+    let t = (c .-. ro) `dot` (n ^/ (rd `dot` n))
+    in if t <= rayEpsilon
+       then Nothing
+       else let p = ro .+^ (rd ^* t)
+                d = p .-. c
+                ddote0 = d `dot` e0
+                ddote1 = d `dot` e1
+                lenE0Squared = e0 `dot` e0
+                lenE1Squared = e1 `dot` e1
+            in if (ddote0 < 0) || (ddote0 > lenE0Squared) || (ddote1 < 0) || (ddote1 > lenE1Squared)
+               then Nothing
+               else Just (Intersection {intersectionPoint = p, intersectionNormal = n, tMin = t})
+
