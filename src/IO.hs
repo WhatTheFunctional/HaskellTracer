@@ -7,7 +7,6 @@ import Linear
 
 import Color
 
-
 clampComponent :: (RealFrac f, Integral i) => f -> i
 clampComponent x = round (max 0.0 (min 255.0 (x * 255)))
 

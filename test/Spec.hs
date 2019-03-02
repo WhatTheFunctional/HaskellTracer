@@ -1,3 +1,4 @@
+import System.Random
 import Linear
 import Linear.Affine
 
@@ -45,6 +46,9 @@ testGreenRGB = RGB 0 1 0
 
 testPinkRGB :: (Num f) => Color f
 testPinkRGB = RGB 1 0 1
+
+testSkyBlueRGB :: (Fractional f) => Color f
+testSkyBlueRGB = RGB 0.529 0.808 0.922
 
 testCamera :: (Num f) => Camera f
 testCamera = Camera (P (V3 0 0 0)) (V3 0 0 1) (V3 0 1 0)
@@ -111,6 +115,33 @@ suffernLight2 = DirectionalLight (V3 1 (-1) (-1)) (RGB 0.5 0.5 0)
 suffernLight3 :: (Fractional f) => Light f
 suffernLight3 = DirectionalLight (V3 0 (-1) 0) (RGB 1 1 1)
 
+-- Random spheres scene
+
+randomSpheresCamera :: (Epsilon f, Floating f) => Camera f
+randomSpheresCamera = cameraLookAt (P (V3 20 200 400)) (V3 0 150 0) (V3 0 1 0)
+
+randomSpheres :: (Floating f, Random f, RandomGen g, Integral i) => i -> V3 f -> V3 f -> f -> f -> g -> ([Object f], g)
+randomSpheres i (V3 minX minY minZ) (V3 maxX maxY maxZ) minR maxR rGenerator 
+    = if i <= 0
+      then ([], rGenerator)
+      else let (x, g0) = randomR (minX, maxX) rGenerator
+               (y, g1) = randomR (minY, maxY) g0
+               (z, g2) = randomR (minZ, maxZ) g1
+               (radius, g3) = randomR (minR, maxR) g2
+               (kDR, g4) = randomR (0, 1) g3
+               (kDG, g5) = randomR (0, 1) g4
+               (kDB, g6) = randomR (0, 1) g5
+               (kSR, g7) = randomR (0, 1) g6
+               (kSG, g8) = randomR (0, 1) g7
+               (kSB, g9) = randomR (0, 1) g8
+               (kExp, g10) = randomR (1, 5) g9
+               sphere = Object (Sphere (P (V3 x y z)) radius) (PlasticMaterial (RGB kDR kDG kDB) 1 (RGB kSR kSG kSB) 1 kExp) lambertShader
+               (spheres, lastG) = randomSpheres (i - 1) (V3 minX minY minZ) (V3 maxX maxY maxZ) minR maxR g10
+           in (sphere : spheres, lastG)
+
+randomSpheresPlane :: (Floating f) => Object f
+randomSpheresPlane = Object (Plane (P (V3 0 (-100) 0)) (V3 0 1 0)) (MatteMaterial (RGB 1 1 1) 1) lambertShader
+
 -- Test functions
 
 testRayIntersectSphere :: IO ()
@@ -136,13 +167,13 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
     putStrLn $ show $ (intersection, material)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
     putStrLn $ show $ (intersection, material)
 
 testRenderBasicSphere :: IO ()
@@ -201,6 +232,21 @@ testRenderLitScene =
                  (200, 200, 1.0 :: Double, 1.0)
                  (grid4xSampling orthoLens))
 
+testRenderRandomSpheresScene :: IO ()
+testRenderRandomSpheresScene =
+    do putStrLn "-- Writing random spheres scene image to random_spheres_scene.png"
+       let (spheres, g) = randomSpheres 100 (V3 (-500) (-100) (-100)) (V3 500 500 100) 1 30 (mkStdGen 588025)
+       writePNG "random_spheres_scene.png"
+                (pixelTraceGenerator
+                 listTrace
+                 traceAllLights
+                 (ListScene (randomSpheresPlane : spheres))
+                 [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
+                 (testSkyBlueRGB :: Color Double)
+                 randomSpheresCamera
+                 (640, 480, 1.0 :: Double, 1.0)
+                 (singleSampling (perspectiveLens 640 (pi / 3))))
+
 main :: IO ()
 main = do putStrLn "Running tests"
           putStrLn "--Suffern camera"
@@ -227,3 +273,5 @@ main = do putStrLn "Running tests"
           testRenderBasicScene
           testRender4xSuperSamplingBasicScene
           testRenderLitScene
+          testRenderRandomSpheresScene 
+

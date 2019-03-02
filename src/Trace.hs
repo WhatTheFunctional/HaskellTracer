@@ -21,15 +21,15 @@ initialIntersection :: (RealFloat f) => Intersection f
 initialIntersection = Intersection {intersectionPoint = (P (V3 0 0 0)), intersectionNormal = (V3 0 0 1), tMin = maxValue}
 
 -- List tracer iterates through a list of objects
-listTrace :: (Epsilon f, RealFloat f, Ord f) => Scene f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))
-listTrace (ListScene objects) ray = 
+listTrace :: (Epsilon f, RealFloat f, Ord f) => Scene f -> Color f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))
+listTrace (ListScene objects) bgColor ray = 
     foldr (\(Object shape objectMaterial objectShader) (intersection@(Intersection {tMin = traceTMin}), material, shader) ->
                case rayIntersection ray shape of
                    Nothing -> (intersection, material, shader)
                    Just objectIntersection@(Intersection {tMin = tm}) ->
                        if tm < traceTMin
                        then (objectIntersection, objectMaterial, objectShader)
-                       else (intersection, material, shader)) (initialIntersection, (ColorMaterial (pure 0)), colorShader) objects
+                       else (intersection, material, shader)) (initialIntersection, (ColorMaterial bgColor), colorShader) objects
 
 traceAllLights :: (Epsilon f, RealFloat f, Ord f) => (Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))) -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f)) -> Color f
 traceAllLights traceFunction lights bgColor ray (intersection, ColorMaterial color, shader) = color
