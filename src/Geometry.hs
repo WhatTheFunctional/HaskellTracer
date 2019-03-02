@@ -2,6 +2,9 @@ module Geometry
     ( Shape (..)
     , transformShape
     , getShapeBoundingBox
+    , mergeBoundingBoxes
+    , splitBoundingBox
+    , boundingBoxSurfaceArea
     ) where
 
 import Numeric.Limits
@@ -63,4 +66,21 @@ getShapeBoundingBox (Rectangle (P p) e0 e1 _) =
     let minValue = (\x0 x1 x2 x3 -> min (min (min x0 x1) x2) x3) <$> p <*> (p ^+^ e0) <*> (p ^+^ e1) <*> (p ^+^ e0 ^+^ e1)
         maxValue = (\x0 x1 x2 x3 -> max (max (max x0 x1) x2) x3) <$> p <*> (p ^+^ e0) <*> (p ^+^ e1) <*> (p ^+^ e0 ^+^ e1)
     in AABB identity minValue maxValue
+
+mergeBoundingBoxes :: (Eq f, Ord f) => Shape f -> Shape f -> Maybe (Shape f)
+mergeBoundingBoxes (AABB frame0 minBound0 maxBound0) (AABB frame1 minBound1 maxBound1) =
+    if frame0 /= frame1
+    then Nothing
+    else Just (AABB frame0 (min <$> minBound0 <*> minBound1) (max <$> maxBound0 <*> maxBound1))
+
+splitBoundingBox :: (Eq f, RealFloat f) => V3 f -> Shape f -> (Shape f, Shape f)
+splitBoundingBox split (AABB frame minBound maxBound) =
+    let newMinBound = (\s minB -> if s /= nan then s else minB) <$> split <*> minBound
+        newMaxBound = (\s maxB -> if s /= nan then s else maxB) <$> split <*> maxBound
+    in (AABB frame minBound newMaxBound, AABB frame newMinBound maxBound)
+
+boundingBoxSurfaceArea :: (Num f) => Shape f -> f
+boundingBoxSurfaceArea (AABB _ minBound maxBound) =
+    let (V3 dx dy dz) = maxBound ^-^ minBound
+    in ((dx * dy) + (dx * dz) + (dy * dz)) * 2
 
