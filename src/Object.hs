@@ -10,7 +10,6 @@ import Geometry
 import Color
 import Material
 import Shading
-import Accelerator
 
 data Object f = Object (Shape f) (Material f) (ShadePoint f -> Color f)
 

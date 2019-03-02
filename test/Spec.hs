@@ -57,7 +57,7 @@ testEmptyKDTree :: (RealFloat f) => KDTree f
 testEmptyKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth []
 
 testKDTree :: (RealFloat f) => KDTree f
-testKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth [testSphere]
+testKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth [Object testSphere (ColorMaterial (RGB 1 0 0)) colorShader]
 
 -- Test scene
 
@@ -140,7 +140,7 @@ randomSpheres i (V3 minX minY minZ) (V3 maxX maxY maxZ) minR maxR rGenerator
            in (sphere : spheres, lastG)
 
 randomSpheresPlane :: (Floating f) => Object f
-randomSpheresPlane = Object (Plane (P (V3 0 (-100) 0)) (V3 0 1 0)) (MatteMaterial (RGB 1 1 1) 1) lambertShader
+randomSpheresPlane = Object (Plane (P (V3 0 (-150) 0)) (V3 0 1 0)) (MatteMaterial (RGB 1 1 1) 1) lambertShader
 
 -- Test functions
 
@@ -235,7 +235,7 @@ testRenderLitScene =
 testRenderRandomSpheresScene :: IO ()
 testRenderRandomSpheresScene =
     do putStrLn "-- Writing random spheres scene image to random_spheres_scene.png"
-       let (spheres, g) = randomSpheres 100 (V3 (-500) (-100) (-100)) (V3 500 500 100) 1 30 (mkStdGen 588025)
+       let (spheres, g) = randomSpheres 100 (V3 (-300) (-100) (-100)) (V3 300 300 100) 1 30 (mkStdGen 588025)
        writePNG "random_spheres_scene.png"
                 (pixelTraceGenerator
                  listTrace
@@ -245,7 +245,7 @@ testRenderRandomSpheresScene =
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
                  (640, 480, 1.0 :: Double, 1.0)
-                 (singleSampling (perspectiveLens 640 (pi / 3))))
+                 (simpleSampling (perspectiveLens (pi / 3))))
 
 main :: IO ()
 main = do putStrLn "Running tests"
