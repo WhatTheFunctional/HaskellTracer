@@ -15,6 +15,7 @@ import IO
 import Light
 import Material
 import Shading
+import Accelerator
 
 -- Test objects
 
@@ -47,6 +48,12 @@ testPinkRGB = RGB 1 0 1
 
 testCamera :: (Num f) => Camera f
 testCamera = Camera (P (V3 0 0 0)) (V3 0 0 1) (V3 0 1 0)
+
+testEmptyKDTree :: (RealFloat f) => KDTree f
+testEmptyKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth []
+
+testKDTree :: (RealFloat f) => KDTree f
+testKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth [testSphere]
 
 -- Test scene
 
@@ -206,6 +213,10 @@ main = do putStrLn "Running tests"
           putStrLn $ show $ s0
           putStrLn "--Suffern sphere view space center"
           putStrLn $ show $ (worldToView !* (point s0Position))
+          putStrLn "--Test Empty KD tree"
+          putStrLn $ show $ (testEmptyKDTree :: KDTree Double)
+          putStrLn "--Test KD tree"
+          putStrLn $ show $ (testKDTree :: KDTree Double)
           testRayIntersectSphere
           testRayIntersectPlane
           testRayMissSphere
