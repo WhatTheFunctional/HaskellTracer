@@ -34,7 +34,7 @@ getLightColor (EnvironmentLight color) = color
 getLightColor (PointLight _ color) = color
 getLightColor (DirectionalLight _ color) = color
 
-getLightRay :: (Epsilon f, RealFloat f) => Point V3 f -> Light f -> (Ray f, f)
+getLightRay :: (Epsilon f, RealFloat f) => Point V3 f -> Light f -> (Ray f, f) -- Ray, distance to light
 
 getLightRay position (EnvironmentLight _) = (Ray {rayOrigin = position, rayDirection = (V3 0 0 1)}, maxValue) -- TODO: When sampling is added, this will be a spherical direction
 

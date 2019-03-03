@@ -1,3 +1,5 @@
+import Data.List
+import Numeric.Limits
 import System.Random
 import Linear
 import Linear.Affine
@@ -58,6 +60,16 @@ testEmptyKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxD
 
 testKDTree :: (RealFloat f) => KDTree f
 testKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth [Object testSphere (ColorMaterial (RGB 1 0 0)) colorShader]
+
+testRandomSpheresKDTree :: (Random f, RealFloat f) => KDTree f
+testRandomSpheresKDTree = 
+       let (spheres, g) = randomSpheres 3200 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+       in buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres
+
+testDepthFunction :: Int
+testDepthFunction =
+       let (spheres, g) = randomSpheres 1000 (V3 (-(300 :: Float)) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+       in standardMaxDepth (fromIntegral (length spheres))
 
 -- Test scene
 
@@ -167,13 +179,13 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = listTrace (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = traceRays (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
     putStrLn $ show $ (intersection, material)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = listTrace (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let (intersection, material, shader) = traceRays (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
     putStrLn $ show $ (intersection, material)
 
 testRenderBasicSphere :: IO ()
@@ -181,7 +193,7 @@ testRenderBasicSphere =
     do putStrLn "-- Writing basic sphere image to basic_sphere.png"
        writePNG "basic_sphere.png"
                 (pixelTraceGenerator
-                 listTrace
+                 traceRays
                  traceAllLights
                  (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader])
                  [EnvironmentLight testBlackRGB]
@@ -195,7 +207,7 @@ testRenderBasicScene =
     do putStrLn "-- Writing Suffern scene image to suffern_scene.png"
        writePNG "suffern_scene.png"
                 (pixelTraceGenerator
-                 listTrace
+                 traceRays
                  traceAllLights
                  (ListScene [suffernSphere0, suffernSphere1, suffernPlane])
                  [EnvironmentLight testBlackRGB]
@@ -209,7 +221,7 @@ testRender4xSuperSamplingBasicScene =
     do putStrLn "-- Writing Suffern scene image with 4x supersampling to suffern_scene_4x.png"
        writePNG "suffern_scene_4x.png"
                 (pixelTraceGenerator
-                 listTrace
+                 traceRays
                  traceAllLights
                  (ListScene [suffernSphere0, suffernSphere1, suffernPlane])
                  [EnvironmentLight testBlackRGB]
@@ -223,7 +235,7 @@ testRenderLitScene =
     do putStrLn "-- Writing lit Suffern scene image to lit_suffern_scene.png"
        writePNG "lit_suffern_scene.png"
                 (pixelTraceGenerator
-                 listTrace
+                 traceRays
                  traceAllLights
                  (ListScene [litSuffernSphere0, litSuffernSphere1, litSuffernPlane, litSuffernAABB, litSuffernTriangle, litSuffernDisk, litSuffernRectangle])
                  [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
@@ -235,43 +247,100 @@ testRenderLitScene =
 testRenderRandomSpheresScene :: IO ()
 testRenderRandomSpheresScene =
     do putStrLn "-- Writing random spheres scene image to random_spheres_scene.png"
-       let (spheres, g) = randomSpheres 100 (V3 (-300) (-100) (-100)) (V3 300 300 100) 1 30 (mkStdGen 588025)
+       let (spheres, g) = randomSpheres 10000 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 10 (mkStdGen 588025)
        writePNG "random_spheres_scene.png"
                 (pixelTraceGenerator
-                 listTrace
+                 traceRays
                  traceAllLights
-                 (ListScene (randomSpheresPlane : spheres))
+                 --(ListScene (randomSpheresPlane : spheres))
+                 --(KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : spheres)))
+                 --(ListScene spheres)
+                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres))
                  [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
                  (640, 480, 1.0 :: Double, 1.0)
-                 (simpleSampling (perspectiveLens (pi / 3))))
+                 (singleSampling (perspectiveLens (pi / 3))))
+
+runAll :: IO ()
+runAll = do putStrLn "Running tests"
+            putStrLn "--Suffern camera"
+            putStrLn $ show $ (suffernCamera :: Camera Float)
+            let ct@(CameraTransforms {w2v = worldToView, nM = normalMatrix}) = (computeCameraTransforms (suffernCamera :: Camera Float))
+                s0@(Object (Sphere (P s0Position) s0Radius) s0Color colorShader) = suffernSphere0
+            putStrLn "--Suffern transforms"
+            putStrLn $ show $ ct
+            putStrLn "--Suffern sphere"
+            putStrLn $ show $ s0
+            putStrLn "--Suffern sphere view space center"
+            putStrLn $ show $ (worldToView !* (point s0Position))
+            putStrLn "--Test Empty KD tree"
+            putStrLn $ show $ (testEmptyKDTree :: KDTree Double)
+            putStrLn "--Test KD tree"
+            putStrLn $ show $ (testKDTree :: KDTree Double)
+            putStrLn "--Test KD tree depth function"
+            putStrLn $ show $ testDepthFunction
+            let getCoord = (\(V3 x _ _) -> x)
+                getSplitVector = (\split -> V3 split infinity infinity)
+                numObjects = 32
+                (spheres, g) = randomSpheres numObjects (V3 (-300) (-100) (-100)) (V3 (300 :: Float) 300 100) 5 30 (mkStdGen 588025)
+                treeAABB = foldr (\aabb accumulatorAABB -> 
+                                      case mergeBoundingBoxes aabb accumulatorAABB of
+                                          Nothing -> accumulatorAABB
+                                          Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) spheres)
+                shapeBoundingBoxes = fmap (\(Object shape _ _) -> getShapeBoundingBox shape) spheres
+                getSplits = (\objects -> foldr (\(AABB _ v0 v1) accumulator -> (getCoord v0) : (getCoord v1) : accumulator) [] objects)
+                splits = fmap getSplitVector (sort (getSplits shapeBoundingBoxes))
+                splitIndices = foldr (\index accumulator -> index : (index + 1) : accumulator) [] [0..(numObjects - 1)]
+                splitsAndIndices = zip splits splitIndices
+
+                bonusFunction = (\index -> if index == 0 || index == numObjects then emptyBonus else 0)
+                invAABBSurfaceArea = 1 / (boundingBoxSurfaceArea treeAABB)
+                ti = defaultTi
+                tt = defaultTt
+                emptyBonus = defaultEmptyBonus
+                noSplitCost = ti * (fromIntegral numObjects)
+                splitCosts = fmap (\(split, index) ->
+                                       let (leftAABB, rightAABB) = splitBoundingBox split treeAABB
+                                           bonusFactor = (1 - (bonusFunction index))
+                                           leftFactor = (fromIntegral index) * (boundingBoxSurfaceArea leftAABB) * invAABBSurfaceArea
+                                           rightFactor = (fromIntegral (numObjects - index)) * (boundingBoxSurfaceArea rightAABB) * invAABBSurfaceArea
+                                           splitCost = tt + ti * bonusFactor * (leftFactor + rightFactor)
+                                       in (splitCost, index)) splitsAndIndices
+                result = foldr (\(split, index) (minSplit, minSplitCost, minLeftAABB, minRightAABB) ->
+                                 let (leftAABB, rightAABB) = splitBoundingBox split treeAABB
+                                     bonusFactor = (1 - (bonusFunction index))
+                                     leftFactor = (fromIntegral index) * (boundingBoxSurfaceArea leftAABB) * invAABBSurfaceArea
+                                     rightFactor = (fromIntegral (numObjects - index)) * (boundingBoxSurfaceArea rightAABB) * invAABBSurfaceArea
+                                     splitCost = tt + ti * bonusFactor * (leftFactor + rightFactor)
+                                 in if splitCost < minSplitCost
+                                    then (split, splitCost, leftAABB, rightAABB)
+                                    else (minSplit, minSplitCost, minLeftAABB, minRightAABB)) (V3 infinity infinity infinity, noSplitCost, treeAABB, treeAABB) splitsAndIndices
+            putStrLn "--Test no split cost"
+            putStrLn $ show $ noSplitCost
+            putStrLn "--Test split costs"
+            putStrLn $ show $ splitCosts
+            putStrLn "--Test splits and indices"
+            putStrLn $ show $ splitsAndIndices
+            putStrLn "--Test split result"
+            putStrLn $ show $ result
+            putStrLn "--Test Spheres KD tree"
+            putStrLn $ show $ (testRandomSpheresKDTree :: KDTree Double)
+            testRayIntersectSphere
+            testRayIntersectPlane
+            testRayMissSphere
+            testRayMissPlane
+            testNaiveTraceSphere
+            testNaiveTracePlane
+            testRenderBasicSphere
+            testRenderBasicScene
+            testRender4xSuperSamplingBasicScene
+            testRenderLitScene
+            testRenderRandomSpheresScene
+
+runJustRandomSpheres :: IO ()
+runJustRandomSpheres = testRenderRandomSpheresScene
 
 main :: IO ()
-main = do putStrLn "Running tests"
-          putStrLn "--Suffern camera"
-          putStrLn $ show $ (suffernCamera :: Camera Float)
-          let ct@(CameraTransforms {w2v = worldToView, nM = normalMatrix}) = (computeCameraTransforms (suffernCamera :: Camera Float))
-              s0@(Object (Sphere (P s0Position) s0Radius) s0Color colorShader) = suffernSphere0
-          putStrLn "--Suffern transforms"
-          putStrLn $ show $ ct
-          putStrLn "--Suffern sphere"
-          putStrLn $ show $ s0
-          putStrLn "--Suffern sphere view space center"
-          putStrLn $ show $ (worldToView !* (point s0Position))
-          putStrLn "--Test Empty KD tree"
-          putStrLn $ show $ (testEmptyKDTree :: KDTree Double)
-          putStrLn "--Test KD tree"
-          putStrLn $ show $ (testKDTree :: KDTree Double)
-          testRayIntersectSphere
-          testRayIntersectPlane
-          testRayMissSphere
-          testRayMissPlane
-          testNaiveTraceSphere
-          testNaiveTracePlane
-          testRenderBasicSphere
-          testRenderBasicScene
-          testRender4xSuperSamplingBasicScene
-          testRenderLitScene
-          testRenderRandomSpheresScene 
-
+--main = runAll
+main = runJustRandomSpheres

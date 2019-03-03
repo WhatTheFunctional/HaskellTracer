@@ -20,7 +20,6 @@ transformKDNode :: (Fractional f) => M44 f -> M44 f -> KDNode f -> KDNode f
 transformKDNode worldToView normalMatrix (KDLeaf objects) = KDLeaf (fmap (transformObject worldToView normalMatrix) objects)
 transformKDNode worldToView normalMatrix (KDBranch v left right) = KDBranch v (transformKDNode worldToView normalMatrix left) (transformKDNode worldToView normalMatrix right)
 
-
 -- Scene transformation
 
 transformScene :: (Fractional f) => M44 f -> M44 f -> Scene f -> Scene f
