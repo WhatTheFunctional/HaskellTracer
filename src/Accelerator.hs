@@ -30,7 +30,7 @@ defaultTt :: (Num f) => f
 defaultTt = 1
 
 defaultEmptyBonus :: (Fractional f) => f
-defaultEmptyBonus = 0.5
+defaultEmptyBonus = 0.01
 
 standardMaxDepth :: (Integral i) => i -> i
 standardMaxDepth n = round (8 + 1.3 * (logBase 2 (fromIntegral n)))
