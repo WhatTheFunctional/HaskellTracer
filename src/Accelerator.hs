@@ -20,7 +20,7 @@ data KDNode f = KDLeaf [Object f] -- Leaf objects
               | KDBranch (V3 f) (KDNode f) (KDNode f) -- Split and child-nodes
               deriving (Show)
 
-data KDTree f = KDTree (Shape f) (KDNode f) -- AABB and root node
+data KDTree f = KDTree (Shape f) [Object f] (KDNode f) -- AABB, planes and root node
               deriving (Show)
 
 defaultTi :: (Num f) => f
@@ -99,13 +99,19 @@ splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) object
                     then splitBestAxis getZ getZSplitVector numObjects depth maxDepth ti tt emptyBonus aabb objects
                     else splitBestAxis getY getYSplitVector numObjects depth maxDepth ti tt emptyBonus aabb objects
 
+splitPlanes :: (RealFloat f) => ([Object f], [Object f]) -> [Object f] -> ([Object f], [Object f])
+splitPlanes (planes, nonPlanes) [] = (planes, nonPlanes)
+splitPlanes (planes, nonPlanes) (object@(Object (Plane _ _) _ _) : objects) = splitPlanes (object : planes, nonPlanes) objects
+splitPlanes (planes, nonPlanes) (object : objects) = splitPlanes (planes, object : nonPlanes) objects
+
 buildKDTree :: (RealFloat f, Integral i) => f -> f -> f -> (i -> i) -> [Object f] -> KDTree f
-buildKDTree ti tt emptyBonus maxDepthFunction [] = KDTree (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (KDLeaf [])
+buildKDTree ti tt emptyBonus maxDepthFunction [] = KDTree (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) [] (KDLeaf [])
 buildKDTree ti tt emptyBonus maxDepthFunction objects =
-    let maxDepth = maxDepthFunction (fromIntegral (length objects))
+    let (planes, nonPlanes) = splitPlanes ([], []) objects
+        maxDepth = maxDepthFunction (fromIntegral (length nonPlanes))
         treeAABB = foldr (\aabb accumulatorAABB -> 
                               case mergeBoundingBoxes aabb accumulatorAABB of
                                   Nothing -> accumulatorAABB
-                                  Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) objects)
-    in KDTree treeAABB (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB objects)
+                                  Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
+    in KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
 

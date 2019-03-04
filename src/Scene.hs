@@ -24,5 +24,6 @@ transformKDNode worldToView normalMatrix (KDBranch v left right) = KDBranch v (t
 
 transformScene :: (Fractional f) => M44 f -> M44 f -> Scene f -> Scene f
 transformScene worldToView normalMatrix (ListScene objects) = ListScene (fmap (transformObject worldToView normalMatrix) objects)
-transformScene worldToView normalMatrix (KDScene (KDTree aabb node)) = KDScene (KDTree (transformShape worldToView normalMatrix aabb) (transformKDNode worldToView normalMatrix node))
+transformScene worldToView normalMatrix (KDScene (KDTree aabb planes node)) =
+    KDScene (KDTree (transformShape worldToView normalMatrix aabb) (fmap (transformObject worldToView normalMatrix) planes) (transformKDNode worldToView normalMatrix node))
 

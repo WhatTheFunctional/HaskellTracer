@@ -37,10 +37,15 @@ traceRays (ListScene objects) bgColor ray =
                        then (objectIntersection, objectMaterial, objectShader)
                        else (intersection, material, shader)) (emptyIntersectionTuple bgColor) objects
 
-traceRays (KDScene (KDTree aabb node)) bgColor ray = 
-    case rayIntersection ray aabb of
-        Nothing -> (emptyIntersectionTuple bgColor)
-        Just objectIntersection -> traceKDNode node aabb bgColor ray
+traceRays (KDScene (KDTree aabb planes node)) bgColor ray = 
+    let planeIntersectionTuple@((Intersection {tMin = planeTMin}), _, _) = traceRays (ListScene planes) bgColor ray
+    in case rayIntersection ray aabb of
+           Nothing -> planeIntersectionTuple
+           Just objectIntersection ->
+               let kdIntersectionTuple@((Intersection {tMin = kdTMin}), _, _) = traceKDNode node aabb bgColor ray
+               in if kdTMin < planeTMin
+                  then kdIntersectionTuple
+                  else planeIntersectionTuple
 
 -- KD node tracer
 

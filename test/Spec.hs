@@ -130,7 +130,7 @@ suffernLight3 = DirectionalLight (V3 0 (-1) 0) (RGB 1 1 1)
 -- Random spheres scene
 
 randomSpheresCamera :: (Epsilon f, Floating f) => Camera f
-randomSpheresCamera = cameraLookAt (P (V3 200 200 400)) (V3 0 150 0) (V3 0 1 0)
+randomSpheresCamera = cameraLookAt (P (V3 20 200 400)) (V3 0 150 0) (V3 0 1 0)
 
 randomSpheres :: (Floating f, Random f, RandomGen g, Integral i) => i -> V3 f -> V3 f -> f -> f -> g -> ([Object f], g)
 randomSpheres i (V3 minX minY minZ) (V3 maxX maxY maxZ) minR maxR rGenerator 
@@ -247,15 +247,15 @@ testRenderLitScene =
 testRenderRandomSpheresScene :: IO ()
 testRenderRandomSpheresScene =
     do putStrLn "-- Writing random spheres scene image to random_spheres_scene.png"
-       let (spheres, g) = randomSpheres 100 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+       let (spheres, g) = randomSpheres 1000 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 10 (mkStdGen 588025)
        writePNG "random_spheres_scene.png"
                 (pixelTraceGenerator
                  traceRays
                  traceAllLights
                  --(ListScene (randomSpheresPlane : spheres))
-                 --(KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : spheres)))
+                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : spheres)))
                  --(ListScene spheres)
-                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres))
+                 --(KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres))
                  [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
