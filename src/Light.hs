@@ -15,6 +15,7 @@ import Ray
 data Light f = EnvironmentLight (Color f)
                | PointLight (Point V3 f) (Color f)
                | DirectionalLight (V3 f) (Color f)
+               | DiskLight (Point V3 f) (V3 f) f -- Point, normal, and radius
                deriving (Show, Eq)
 
 transformLight :: (Floating f) => M44 f -> M44 f -> Light f -> Light f

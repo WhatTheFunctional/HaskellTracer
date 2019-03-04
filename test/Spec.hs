@@ -63,7 +63,7 @@ testKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth 
 
 testRandomSpheresKDTree :: (Random f, RealFloat f) => KDTree f
 testRandomSpheresKDTree = 
-       let (spheres, g) = randomSpheres 3200 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+       let (spheres, g) = randomSpheres 32 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
        in buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres
 
 testDepthFunction :: Int
@@ -326,6 +326,8 @@ runAll = do putStrLn "Running tests"
             putStrLn $ show $ result
             putStrLn "--Test Spheres KD tree"
             putStrLn $ show $ (testRandomSpheresKDTree :: KDTree Double)
+            putStrLn "--Test Halton sequence"
+            putStrLn $ show $ fmap (halton 2) [0..31]
             testRayIntersectSphere
             testRayIntersectPlane
             testRayMissSphere
@@ -342,5 +344,5 @@ runJustRandomSpheres :: IO ()
 runJustRandomSpheres = testRenderRandomSpheresScene
 
 main :: IO ()
---main = runAll
-main = runJustRandomSpheres
+main = runAll
+--main = runJustRandomSpheres
