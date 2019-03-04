@@ -52,25 +52,39 @@ traceKDNode (KDBranch split left right) aabb bgColor ray =
     let (leftAABB, rightAABB) = splitBoundingBox split aabb
         tLeft = case rayIntersection ray leftAABB of
                     Nothing -> infinity
-                    Just objectIntersection@(Intersection {tMin = tm}) -> tm
+                    Just objectIntersection@(Intersection {tMin = leftTMin}) -> leftTMin
         tRight = case rayIntersection ray rightAABB of
                     Nothing -> infinity
-                    Just objectIntersection@(Intersection {tMin = tm}) -> tm
-    in if tLeft < tRight
-       then let leftTuple@(Intersection {tMin = leftTMin}, _, _) = traceKDNode left leftAABB bgColor ray
-            in if leftTMin /= infinity
-               then leftTuple
-               else let rightTuple@(Intersection {tMin = rightTMin}, _, _) = traceKDNode right rightAABB bgColor ray
-                    in if rightTMin /= infinity
-                       then rightTuple
-                       else emptyIntersectionTuple bgColor
-       else let rightTuple@(Intersection {tMin = rightTMin}, _, _) = traceKDNode right rightAABB bgColor ray
-            in if rightTMin /= infinity
-               then rightTuple
-               else let leftTuple@(Intersection {tMin = leftTMin}, _, _) = traceKDNode left leftAABB bgColor ray
-                    in if leftTMin /= infinity
-                       then leftTuple
-                       else emptyIntersectionTuple bgColor
+                    Just objectIntersection@(Intersection {tMin = rightTMin}) -> rightTMin
+        leftIntersection = tLeft /= infinity
+        rightIntersection = tRight /= infinity
+    in if leftIntersection && rightIntersection
+       then if tLeft <= tRight
+            then let leftTuple@(Intersection {tMin = leftTMin}, _, _) = traceKDNode left leftAABB bgColor ray
+                 in if leftTMin /= infinity
+                    then leftTuple
+                    else let rightTuple@(Intersection {tMin = rightTMin}, _, _) = traceKDNode right rightAABB bgColor ray
+                         in if rightTMin /= infinity
+                            then rightTuple
+                            else emptyIntersectionTuple bgColor
+            else let rightTuple@(Intersection {tMin = rightTMin}, _, _) = traceKDNode right rightAABB bgColor ray
+                 in if rightTMin /= infinity
+                    then rightTuple
+                    else let leftTuple@(Intersection {tMin = leftTMin}, _, _) = traceKDNode left leftAABB bgColor ray
+                         in if leftTMin /= infinity
+                            then leftTuple
+                            else emptyIntersectionTuple bgColor
+        else if leftIntersection
+             then let leftTuple@(Intersection {tMin = leftTMin}, _, _) = traceKDNode left leftAABB bgColor ray
+                  in if leftTMin /= infinity
+                     then leftTuple
+                     else emptyIntersectionTuple bgColor
+             else if rightIntersection
+                  then let rightTuple@(Intersection {tMin = rightTMin}, _, _) = traceKDNode right rightAABB bgColor ray
+                       in if rightTMin /= infinity
+                          then rightTuple
+                          else emptyIntersectionTuple bgColor
+                  else emptyIntersectionTuple bgColor
 
 -- Light tracer
 

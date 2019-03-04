@@ -56,11 +56,11 @@ splitObjects :: (RealFloat f) => (V3 f -> f) -> [Object f] -> [Object f] -> V3 f
 splitObjects _ leftObjects rightObjects _ [] = (leftObjects, rightObjects)
 splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _) : objects) =
     let split = getCoord splitV
-        AABB frame minV maxV = getShapeBoundingBox shape
+        AABB _ minV maxV = getShapeBoundingBox shape
         minB = getCoord minV
         maxB = getCoord maxV
-        newLeftObjects = if minB < split || minB < split then object : leftObjects else leftObjects
-        newRightObjects = if minB > split || minB > split then object : rightObjects else rightObjects
+        newLeftObjects = if minB <= split || maxB <= split then object : leftObjects else leftObjects
+        newRightObjects = if minB >= split || maxB >= split then object : rightObjects else rightObjects
     in splitObjects getCoord newLeftObjects newRightObjects splitV objects
 
 splitBestAxis :: (Ord f, RealFloat f, Integral i) => (V3 f -> f) -> (f -> V3 f) -> i -> i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
