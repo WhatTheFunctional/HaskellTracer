@@ -326,8 +326,17 @@ runAll = do putStrLn "Running tests"
             putStrLn $ show $ result
             putStrLn "--Test Spheres KD tree"
             putStrLn $ show $ (testRandomSpheresKDTree :: KDTree Double)
-            putStrLn "--Test Halton sequence"
-            putStrLn $ show $ fmap (halton 2) [0..31]
+            let haltonGen = HaltonGen 2 0 0 20
+            putStrLn "--Test Halton sample"
+            putStrLn $ show $ randomR (5 :: Float, 10) haltonGen
+            putStrLn "--Test Halton quad"
+            putStrLn $ show $ sampleQuad (20 :: Float) 25 haltonGen
+            putStrLn "--Test Halton disk"
+            putStrLn $ show $ sampleDisk (32 :: Float) haltonGen
+            putStrLn "--Test Halton hemisphere"
+            putStrLn $ show $ (sampleHemisphere haltonGen :: ((Float, Float), HaltonGen Int))
+            putStrLn "--Test Halton sphere"
+            putStrLn $ show $ (sampleSphere haltonGen :: ((Float, Float), HaltonGen Int))
             testRayIntersectSphere
             testRayIntersectPlane
             testRayMissSphere
