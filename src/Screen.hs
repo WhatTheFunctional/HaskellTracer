@@ -13,16 +13,22 @@ import Light
 import Color
 import Material
 import Shading
+import Sampling
 
-invGamma :: (Fractional f) => f
-invGamma = 1 / 2.2
-
-pixelTraceGenerator :: (Floating f, Integral i) =>
-                       (Scene f -> Color f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))) ->
-                       ((Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f))) -> [Light f] -> Color f -> Ray f -> (Intersection f, Material f, (ShadePoint f -> Color f)) -> Color f) ->
-                       Scene f -> [Light f] -> Color f -> Camera f -> (i, i, f, f) -> (f -> f -> f -> f -> f -> [Ray f]) -> (Int, Int, (Int -> Int -> Color f))
-pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (width, height, pixelSize, gamma) samplingFunction =
-    let w = fromIntegral width
+pixelTraceGenerator :: (RealFloat f, Integral i, LowDiscrepancySequence s i f)
+                    => (Scene f -> Color f -> Ray f -> s i f -> ((TraceResult f, Ray f), s i f))
+                    -> ((Ray f -> s i f -> ((TraceResult f, Ray f), s i f)) -> [Light f] -> Color f -> (TraceResult f, Ray f) -> s i f -> (Color f, s i f))
+                    -> Scene f
+                    -> [Light f]
+                    -> Color f
+                    -> Camera f
+                    -> (i, i, f, f)
+                    -> (f -> f -> f -> f -> f -> s i f -> ([Ray f], s i f))
+                    -> (s i f)
+                    -> (Int, Int, (Int -> Int -> Color f))
+pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (width, height, pixelSize, gamma) samplingFunction gen =
+    let invGamma = 1 / gamma
+        w = fromIntegral width
         h = fromIntegral height
     in (fromIntegral width,
         fromIntegral height,
@@ -31,8 +37,12 @@ pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (
                                (CameraTransforms {w2v = worldToView, nM = normalMatrix}) = computeCameraTransforms camera
                                transformedScene = transformScene worldToView normalMatrix scene
                                transformedLights = fmap (transformLight worldToView normalMatrix) lights
-                               rays = samplingFunction pixelSize w h worldX worldY
                                innerTraceFunction = traceFunction transformedScene bgColor
                                innerLightingFunction = lightingFunction innerTraceFunction transformedLights bgColor
-                           in fmap (\x -> x ** invGamma) ((foldr (\ray accumulatedColor -> (innerLightingFunction ray (innerTraceFunction ray)) ^+^ accumulatedColor) (pure 0) rays) ^/ fromIntegral (length rays))))
+                               (rays, gen0) = samplingFunction pixelSize w h worldX worldY gen
+                               (colorSum, gen4) = foldr (\ray (accumulatedColor, gen1) ->
+                                                             let ((rayTraceResult, newRay), gen2) = innerTraceFunction ray gen1
+                                                                 (lightTraceResult, gen3) = innerLightingFunction (rayTraceResult, newRay) gen2
+                                                             in (lightTraceResult ^+^ accumulatedColor, gen3)) ((pure 0), gen0) rays
+                           in fmap (\x -> x ** invGamma) (colorSum ^/ fromIntegral (length rays))))
 

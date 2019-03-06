@@ -1,72 +1,95 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns #-}
 module Sampling
-    ( HaltonGen (..)
+    ( LowDiscrepancySequence (..)
+    , Halton (..)
+    , mkHaltonLDS
     , sampleQuad
     , sampleDisk
     , sampleHemisphere
     , sampleSphere
     , singleSampling
     , grid4xSampling
+    , randomSampling
     ) where
-
-import System.Random
 
 import Lens
 import Ray
 
-data HaltonGen i = HaltonGen i i i i -- Base, index, rangeMin, rangeMax
+
+class LowDiscrepancySequence s i f where
+    sample :: s i f -> (f, s i f) -- Range of [0, 1]
+    sampleR :: (f, f) -> s i f -> (f, s i f)
+
+data Halton i f = Halton i i i [f] -- Base, index, count, cache
               deriving (Show, Eq)
 
-haltonIteration :: (Fractional f, Integral i) => i -> i -> f -> f -> f
-haltonIteration base index fraction result =
-    if index > 0
-    then let fractionNew = fraction / (fromIntegral base)
+haltonIteration :: (Fractional f, Ord f, Integral i) => i -> i -> f -> f -> f
+haltonIteration !base !index !fraction !result =
+    if index <= 0
+    then (max 0 (min result 1))
+    else let fractionNew = fraction / (fromIntegral base)
              resultNew = result + fractionNew * (fromIntegral (index `mod` base))
              indexNew = fromIntegral (floor ((fromIntegral index) / (fromIntegral base)))
          in haltonIteration base indexNew fractionNew resultNew
-    else result
 
-instance (Integral i) => RandomGen (HaltonGen i) where
-    next (HaltonGen base index rangeMin rangeMax) =
-        (fromIntegral $ rangeMin + (floor ((haltonIteration base index 1 0) * (fromIntegral (rangeMax - rangeMin)))),
-         HaltonGen base (index + 1) rangeMin rangeMax)
-    genRange (HaltonGen base index rangeMin rangeMax) = (fromIntegral rangeMin, fromIntegral rangeMax)
-    split (HaltonGen base index rangeMin rangeMax) =
-        (HaltonGen (base + 1) index rangeMin rangeMax, HaltonGen (base + 2) index rangeMin rangeMax)
+mkHaltonLDS :: (Fractional f, Ord f, Integral i) => i -> i -> i -> Halton i f
+mkHaltonLDS !count !base !index =
+    let newIndex = (index `mod` count)
+    in Halton base newIndex count [haltonIteration base x 1 0 | x <- [503..(503 + count - 1)]]
 
-sampleQuad :: (Num f, Random f, RandomGen g) => f -> f -> g -> ((f, f), g)
+instance (Num f, Ord f, Integral i) => LowDiscrepancySequence Halton i f where
+    sample (Halton base index count cache) = (cache !! (fromIntegral index), Halton base ((index + 1) `mod` count) count cache)
+    sampleR (minRange, maxRange) (Halton base index count cache) = ((cache !! (fromIntegral index)) * (maxRange - minRange) + minRange, Halton base ((index + 1) `mod` count) count cache)
+
+sampleQuad :: (Fractional f, LowDiscrepancySequence s i f) => f -> f -> s i f -> ((f, f), s i f)
 sampleQuad w h gen0 =
-    let (x, gen1) = randomR (0, w) gen0
-        (y, gen2) = randomR (0, h) gen1
+    let (x, gen1) = sampleR (0, w) gen0
+        (y, gen2) = sampleR (0, h) gen1
     in ((x, y), gen2)
 
-sampleDisk :: (Floating f, Random f, RandomGen g) => f -> g -> ((f, f), g)
+sampleDisk :: (Floating f, LowDiscrepancySequence s i f) => f -> s i f -> ((f, f), s i f)
 sampleDisk radius gen0 =
-    let (theta, gen1) = randomR (-pi, pi) gen0
-        (r, gen2) = randomR (0, radius) gen1
+    let twoPi = pi * 2
+        (theta, gen1) = sampleR (0, twoPi) gen0
+        (r, gen2) = sampleR (0, radius) gen1
     in ((theta, r), gen2)
 
-sampleHemisphere :: (Floating f, Random f, RandomGen g) => g -> ((f, f), g)
+sampleHemisphere :: (Floating f, LowDiscrepancySequence s i f) => s i f -> ((f, f), s i f)
 sampleHemisphere gen0 =
-    let halfPi = pi / 2
-        (phi, gen1) = randomR (-pi, pi) gen0
-        (theta, gen2) = randomR (0, halfPi) gen1
+    let twoPi = pi * 2
+        halfPi = pi / 2
+        (phi, gen1) = sampleR (0, twoPi) gen0
+        (theta, gen2) = sampleR (0, halfPi) gen1
     in ((phi, theta), gen2)
 
-sampleSphere :: (Floating f, Random f, RandomGen g) => g -> ((f, f), g)
+sampleSphere :: (Floating f, LowDiscrepancySequence s i f) => s i f -> ((f, f), s i f)
 sampleSphere gen0 =
-    let (phi, gen1) = randomR (-pi, pi) gen0
-        (theta, gen2) = randomR (0, pi) gen1
+    let twoPi = pi * 2
+        (phi, gen1) = sampleR (0, twoPi) gen0
+        (theta, gen2) = sampleR (0, pi) gen1
     in ((phi, theta), gen2)
 
-singleSampling :: (f -> f -> f -> f -> Ray f) -> g -> f -> f -> f -> f -> [Ray f]
-singleSampling lensFunction pixelSize w h x y = [lensFunction w h x y]
+singleSampling :: (LowDiscrepancySequence s i f) => (f -> f -> f -> f -> Ray f) -> f -> f -> f -> f -> f -> s i f -> ([Ray f], s i f)
+singleSampling lensFunction pixelSize w h x y gen = ([lensFunction w h x y], gen)
 
-grid4xSampling :: (Fractional f, RealFrac g) => (f -> f -> f -> f -> Ray f) -> g -> f -> f -> f -> f -> [Ray f]
-grid4xSampling lensFunction pixelSize w h x y =
+grid4xSampling :: (RealFrac f, LowDiscrepancySequence s i f) => (f -> f -> f -> f -> Ray f) -> f -> f -> f -> f -> f -> s i f -> ([Ray f], s i f)
+grid4xSampling lensFunction pixelSize w h x y gen =
     let offset = realToFrac (pixelSize * 0.25)
-    in [ lensFunction w h (x - offset) (y - offset)
-       , lensFunction w h (x + offset) (y - offset)
-       , lensFunction w h (x - offset) (y + offset)
-       , lensFunction w h (x + offset) (y + offset)
-       ]
+    in ([ lensFunction w h (x - offset) (y - offset)
+        , lensFunction w h (x + offset) (y - offset)
+        , lensFunction w h (x - offset) (y + offset)
+        , lensFunction w h (x + offset) (y + offset)
+        ], gen)
+
+randomSampling :: (Fractional f, LowDiscrepancySequence s i f) => Int -> (f -> f -> f -> f -> Ray f) -> f -> f -> f -> f -> f -> s i f -> ([Ray f], s i f)
+randomSampling count lensFunction pixelSize w h x y gen =
+    let halfSampleSize = pixelSize * 1.5 / 2
+        sampleSize = pixelSize * 3
+        samplesIndices = [0..(count - 1)]
+    in foldr (\c (accumulator, gen1) ->
+                let ((rayX, rayY), gen2) = sampleQuad sampleSize sampleSize gen1
+                    ray = lensFunction w h (x + rayX - halfSampleSize) (y + rayY - halfSampleSize)
+                in (ray : accumulator, gen2)) ([], gen) samplesIndices
 

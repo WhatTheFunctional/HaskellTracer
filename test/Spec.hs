@@ -179,13 +179,13 @@ testRayMissPlane = do
 testNaiveTraceSphere :: IO ()
 testNaiveTraceSphere = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = traceRays (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let ((TraceResult intersection material shader, ray), gen) = traceRays (ListScene [Object testSphere (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float) (mkHaltonLDS 15485863 2 0)
     putStrLn $ show $ (intersection, material)
 
 testNaiveTracePlane :: IO ()
 testNaiveTracePlane = do
     putStrLn "-- Testing Naive Trace with a Sphere"
-    let (intersection, material, shader) = traceRays (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float)
+    let ((TraceResult intersection material shader, ray), gen) = traceRays (ListScene [Object testPlane (ColorMaterial (testRedRGB :: Color Float)) colorShader]) (testPinkRGB :: Color Float) (testHitRay :: Ray Float) (mkHaltonLDS 15485863 2 0)
     putStrLn $ show $ (intersection, material)
 
 testRenderBasicSphere :: IO ()
@@ -199,8 +199,9 @@ testRenderBasicSphere =
                  [EnvironmentLight testBlackRGB]
                  (testPinkRGB :: Color Float)
                  testCamera
-                 (1024, 768, 1.0 :: Float, 1.0)
-                 (singleSampling orthoLens))
+                 (1024, 768, 1.0 :: Float, 2.2)
+                 (singleSampling orthoLens)
+                 (mkHaltonLDS 15485863 2 0))
 
 testRenderBasicScene :: IO ()
 testRenderBasicScene =
@@ -213,8 +214,9 @@ testRenderBasicScene =
                  [EnvironmentLight testBlackRGB]
                  (testPinkRGB :: Color Float)
                  suffernCamera
-                 (200, 200, 1.0 :: Float, 1.0)
-                 (singleSampling orthoLens))
+                 (200, 200, 1.0 :: Float, 2.2)
+                 (singleSampling orthoLens)
+                 (mkHaltonLDS 15485863 2 0))
 
 testRender4xSuperSamplingBasicScene :: IO ()
 testRender4xSuperSamplingBasicScene =
@@ -227,8 +229,9 @@ testRender4xSuperSamplingBasicScene =
                  [EnvironmentLight testBlackRGB]
                  (testPinkRGB :: Color Float)
                  suffernCamera
-                 (200, 200, 1.0 :: Float, 1.0)
-                 (grid4xSampling orthoLens))
+                 (200, 200, 1.0 :: Float, 2.2)
+                 (grid4xSampling orthoLens)
+                 (mkHaltonLDS 15485863 2 0))
 
 testRenderLitScene :: IO ()
 testRenderLitScene =
@@ -241,8 +244,9 @@ testRenderLitScene =
                  [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
                  (testPinkRGB :: Color Double)
                  litSuffernCamera
-                 (200, 200, 1.0 :: Double, 1.0)
-                 (grid4xSampling orthoLens))
+                 (200, 200, 1.0 :: Double, 2.2)
+                 (grid4xSampling orthoLens)
+                 (mkHaltonLDS 15485863 2 0))
 
 testRenderRandomSpheresScene :: IO ()
 testRenderRandomSpheresScene =
@@ -251,7 +255,8 @@ testRenderRandomSpheresScene =
        writePNG "random_spheres_scene.png"
                 (pixelTraceGenerator
                  traceRays
-                 traceAllLights
+                 traceOneLight
+                 --traceAllLights
                  --(ListScene (randomSpheresPlane : spheres))
                  (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : spheres)))
                  --(ListScene spheres)
@@ -259,8 +264,15 @@ testRenderRandomSpheresScene =
                  [suffernLight0, suffernLight1, suffernLight2, suffernLight3]
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
-                 (640, 480, 1.0 :: Double, 1.0)
-                 (singleSampling (perspectiveLens (pi / 3))))
+                 (640, 480, 1.0 :: Double, 2.2)
+                 --(singleSampling (perspectiveLens (pi / 3)))
+                 (randomSampling 4 (perspectiveLens (pi / 3)))
+                 (mkHaltonLDS 104729 5 0))
+                 --(mkHaltonLDS 20011 5 0))
+                 --(mkHaltonLDS 10007 5 0))
+                 --(mkHaltonLDS 5009 5 0))
+                 --(mkHaltonLDS 1001 5 0))
+                 --(mkHaltonLDS 101 5 0))
 
 runAll :: IO ()
 runAll = do putStrLn "Running tests"
@@ -326,17 +338,17 @@ runAll = do putStrLn "Running tests"
             putStrLn $ show $ result
             putStrLn "--Test Spheres KD tree"
             putStrLn $ show $ (testRandomSpheresKDTree :: KDTree Double)
-            let haltonGen = HaltonGen 2 0 0 20
+            let haltonLDS = mkHaltonLDS 100 2 0
             putStrLn "--Test Halton sample"
-            putStrLn $ show $ randomR (5 :: Float, 10) haltonGen
+            putStrLn $ show $ sampleR (5 :: Float, 10) haltonLDS
             putStrLn "--Test Halton quad"
-            putStrLn $ show $ sampleQuad (20 :: Float) 25 haltonGen
+            putStrLn $ show $ sampleQuad (20 :: Float) 25 haltonLDS
             putStrLn "--Test Halton disk"
-            putStrLn $ show $ sampleDisk (32 :: Float) haltonGen
+            putStrLn $ show $ sampleDisk (32 :: Float) haltonLDS
             putStrLn "--Test Halton hemisphere"
-            putStrLn $ show $ (sampleHemisphere haltonGen :: ((Float, Float), HaltonGen Int))
+            putStrLn $ show $ (sampleHemisphere haltonLDS :: ((Float, Float), Halton Int Float))
             putStrLn "--Test Halton sphere"
-            putStrLn $ show $ (sampleSphere haltonGen :: ((Float, Float), HaltonGen Int))
+            putStrLn $ show $ (sampleSphere haltonLDS :: ((Float, Float), Halton Int Float))
             testRayIntersectSphere
             testRayIntersectPlane
             testRayMissSphere
