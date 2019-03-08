@@ -4,6 +4,7 @@
 module Sampling
     ( LowDiscrepancySequence (..)
     , Halton (..)
+    , mkHaltonCache
     , mkHaltonLDS
     , sampleQuad
     , sampleDisk
@@ -22,7 +23,7 @@ class LowDiscrepancySequence s i f where
     sample :: s i f -> (f, s i f) -- Range of [0, 1]
     sampleR :: (f, f) -> s i f -> (f, s i f)
 
-data Halton i f = Halton i i i [f] -- Base, index, count, cache
+data Halton i f = Halton i i [f] -- Index, count, cache
               deriving (Show, Eq)
 
 haltonIteration :: (Fractional f, Ord f, Integral i) => i -> i -> f -> f -> f
@@ -34,14 +35,17 @@ haltonIteration !base !index !fraction !result =
              indexNew = fromIntegral (floor ((fromIntegral index) / (fromIntegral base)))
          in haltonIteration base indexNew fractionNew resultNew
 
-mkHaltonLDS :: (Fractional f, Ord f, Integral i) => i -> i -> i -> Halton i f
-mkHaltonLDS !count !base !index =
+mkHaltonCache :: (Fractional f, Ord f, Integral i) => i -> i -> ([f], i)
+mkHaltonCache count base = ([haltonIteration base x 1 0 | x <- [503..(503 + count - 1)]], count)
+
+mkHaltonLDS :: (Fractional f, Ord f, Integral i) => ([f], i) -> i -> Halton i f
+mkHaltonLDS (!cache, !count) !index =
     let newIndex = (index `mod` count)
-    in Halton base newIndex count [haltonIteration base x 1 0 | x <- [503..(503 + count - 1)]]
+    in Halton newIndex count cache
 
 instance (Num f, Ord f, Integral i) => LowDiscrepancySequence Halton i f where
-    sample (Halton base index count cache) = (cache !! (fromIntegral index), Halton base ((index + 1) `mod` count) count cache)
-    sampleR (minRange, maxRange) (Halton base index count cache) = ((cache !! (fromIntegral index)) * (maxRange - minRange) + minRange, Halton base ((index + 1) `mod` count) count cache)
+    sample (Halton index count cache) = (cache !! (fromIntegral index), Halton ((index + 1) `mod` count) count cache)
+    sampleR (minRange, maxRange) (Halton index count cache) = ((cache !! (fromIntegral index)) * (maxRange - minRange) + minRange, Halton ((index + 1) `mod` count) count cache)
 
 sampleQuad :: (Fractional f, LowDiscrepancySequence s i f) => f -> f -> s i f -> ((f, f), s i f)
 sampleQuad w h gen0 =
@@ -85,8 +89,8 @@ grid4xSampling lensFunction pixelSize w h x y gen =
 
 randomSampling :: (Fractional f, LowDiscrepancySequence s i f) => Int -> (f -> f -> f -> f -> Ray f) -> f -> f -> f -> f -> f -> s i f -> ([Ray f], s i f)
 randomSampling count lensFunction pixelSize w h x y gen =
-    let halfSampleSize = pixelSize * 1.5 / 2
-        sampleSize = pixelSize * 3
+    let halfSampleSize = pixelSize / 2
+        sampleSize = pixelSize
         samplesIndices = [0..(count - 1)]
     in foldr (\c (accumulator, gen1) ->
                 let ((rayX, rayY), gen2) = sampleQuad sampleSize sampleSize gen1

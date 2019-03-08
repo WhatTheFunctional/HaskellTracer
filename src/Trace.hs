@@ -105,11 +105,11 @@ traceAllLights traceFunction lights bgColor ((TraceResult (Intersection {interse
        then (bgColor, gen0)
        else let numLights = length lights
                 (color, gen3) = foldr (\light (accumulatedColor, gen1) ->
-                                           let (lightRay, lightT) = innerGetLightRay light
-                                               (((TraceResult (Intersection {tMin = lightTMin}) _ _), traceRay), gen2) = traceFunction lightRay gen1
+                                           let ((lightRay, lightT), gen2) = innerGetLightRay light gen1
+                                               (((TraceResult (Intersection {tMin = lightTMin}) _ _), traceRay), gen3) = traceFunction lightRay gen2
                                            in if lightT <= lightTMin
-                                              then ((shadeLight material point normal shader ray lightRay (getLightColor light)) ^+^ accumulatedColor, gen2)
-                                              else (accumulatedColor, gen2)) ((pure 0), gen0) lights
+                                              then ((shadeLight material point normal shader ray lightRay (getLightColor light)) ^+^ accumulatedColor, gen3)
+                                              else (accumulatedColor, gen3)) ((pure 0), gen0) lights
             in (color ^/ (fromIntegral numLights), gen3)
 
 -- One light tracer (Random)
@@ -122,9 +122,9 @@ traceOneLight traceFunction lights bgColor ((TraceResult (Intersection {intersec
        else let numLights = fromIntegral (length lights)
                 (lightIndex, gen1) = sampleR (0, numLights) gen0
                 light = lights !! (floor lightIndex)
-                (lightRay, lightT) = getLightRay point light
-                (((TraceResult (Intersection {tMin = lightTMin}) _ _), traceRay), gen2) = traceFunction lightRay gen1
+                ((lightRay, lightT), gen2) = getLightRay point light gen1
+                (((TraceResult (Intersection {tMin = lightTMin}) _ _), traceRay), gen3) = traceFunction lightRay gen2
             in if lightT <= lightTMin
-               then (shadeLight material point normal shader ray lightRay (getLightColor light), gen2)
-               else (pure 0, gen2)
+               then (shadeLight material point normal shader ray lightRay (getLightColor light), gen3)
+               else (pure 0, gen3)
 
