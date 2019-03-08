@@ -288,7 +288,7 @@ testRenderEnvironmentLightScene :: IO ()
 testRenderEnvironmentLightScene =
     do putStrLn "-- Writing environment light environment_light_scene.png"
        let (spheres, g) = randomSpheres 1000 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
-       writePNG "environment_light_scene.png"
+       writeParallelPNG "environment_light_scene.png"
                 (pixelTraceGenerator
                  traceRays
                  traceOneLight
@@ -296,8 +296,8 @@ testRenderEnvironmentLightScene =
                  [environmentLight0]
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
-                 ((200 :: Int), 200, 2.0 :: Double, 2.2)
-                 (randomSampling 4 (perspectiveLens (pi / 3)))
+                 ((640 :: Int), 480, 2.0 :: Double, 2.2)
+                 (randomSampling 64 (perspectiveLens (pi / 3)))
                  (mkHaltonLDS (mkHaltonCache 1048576 2))
                  (mkStdGen 813580))
 
@@ -376,6 +376,7 @@ runAll = do putStrLn "Running tests"
             putStrLn $ show $ (sampleHemisphere haltonLDS :: ((Float, Float), Halton Int Float))
             putStrLn "--Test Halton sphere"
             putStrLn $ show $ (sampleSphere haltonLDS :: ((Float, Float), Halton Int Float))
+            putStrLn $ show $ [(x, y) | x <- [0..10], y <- [0..10]]
             testRayIntersectSphere
             testRayIntersectPlane
             testRayMissSphere
@@ -396,6 +397,6 @@ runJustEnvironmentLight :: IO ()
 runJustEnvironmentLight = testRenderEnvironmentLightScene 
 
 main :: IO ()
-main = runAll
+--main = runAll
 --main = runJustRandomSpheres
---main = runJustEnvironmentLight
+main = runJustEnvironmentLight
