@@ -159,6 +159,11 @@ randomSpheresPlane = Object (Plane (P (V3 0 (-150) 0)) (V3 0 1 0)) (MatteMateria
 environmentLight0 :: (Num f) => Light f
 environmentLight0 = EnvironmentLight (RGB 1 1 1)
 
+-- Disk light scene
+
+diskLight0 :: (Fractional f) => Light f
+diskLight0 = DiskLight (P (V3 300 300 300)) (V3 (-1) (-1) (-1)) 80 (RGB 0.1 0.5 1)
+
 -- Test functions
 
 testRayIntersectSphere :: IO ()
@@ -297,6 +302,23 @@ testRenderEnvironmentLightScene =
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
                  ((640 :: Int), 480, 2.0 :: Double, 2.2)
+                 (randomSampling 8 (perspectiveLens (pi / 3)))
+                 (mkHaltonLDS (mkHaltonCache 1048576 2))
+                 (mkStdGen 813580))
+
+testRenderDiskLightScene :: IO ()
+testRenderDiskLightScene =
+    do putStrLn "-- Writing disk light disk_light_scene.png"
+       let (spheres, g) = randomSpheres 1000 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+       writeParallelPNG "disk_light_scene.png"
+                (pixelTraceGenerator
+                 traceRays
+                 traceOneLight
+                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : spheres)))
+                 [diskLight0]
+                 (testSkyBlueRGB :: Color Double)
+                 randomSpheresCamera
+                 ((200 :: Int), 200, 2.0 :: Double, 2.2)
                  (randomSampling 64 (perspectiveLens (pi / 3)))
                  (mkHaltonLDS (mkHaltonCache 1048576 2))
                  (mkStdGen 813580))
@@ -389,6 +411,7 @@ runAll = do putStrLn "Running tests"
             testRenderLitScene
             testRenderRandomSpheresScene
             testRenderEnvironmentLightScene 
+            testRenderDiskLightScene 
 
 runJustRandomSpheres :: IO ()
 runJustRandomSpheres = testRenderRandomSpheresScene
@@ -396,7 +419,11 @@ runJustRandomSpheres = testRenderRandomSpheresScene
 runJustEnvironmentLight :: IO ()
 runJustEnvironmentLight = testRenderEnvironmentLightScene 
 
+runJustDiskLight :: IO ()
+runJustDiskLight = testRenderDiskLightScene 
+
 main :: IO ()
 --main = runAll
 --main = runJustRandomSpheres
-main = runJustEnvironmentLight
+--main = runJustEnvironmentLight
+main = runJustDiskLight

@@ -58,5 +58,11 @@ getLightRay position (PointLight lightPosition _) gen =
 
 getLightRay position (DirectionalLight lightDirection _) gen = ((Ray {rayOrigin = position, rayDirection = normalize (-lightDirection)}, maxValue), gen)
 
-getLightRay position (DiskLight lightPoint lightDirection lightRadius _) gen = ((Ray {rayOrigin = position, rayDirection = normalize (-lightDirection)}, maxValue), gen)
+getLightRay position (DiskLight lightPoint lightDirection lightRadius _) gen0 =
+    let ((theta, r), gen1) = sampleDisk lightRadius gen0
+        up = if lightDirection == (V3 0 1 0) then (V3 0 0 1) else (V3 0 1 0)
+        right = normalize (up `cross` lightDirection)
+        lightP = (unP lightPoint) ^+^ ((up ^* (sin theta) + right ^* (cos theta)) ^* lightRadius)
+        lightD = lightP ^-^ (unP position)
+    in ((Ray {rayOrigin = position, rayDirection = normalize (lightD)}, lightD `dot` lightD), gen1)
     
