@@ -17,6 +17,7 @@ data Light f = EnvironmentLight (Color f)
                | PointLight (Point V3 f) (Color f)
                | DirectionalLight (V3 f) (Color f)
                | DiskLight (Point V3 f) (V3 f) f (Color f) -- Point, normal, and radius
+               | SphereLight (Point V3 f) f (Color f) -- Point and radius
                deriving (Show, Eq)
 
 transformLight :: (Floating f) => M44 f -> M44 f -> Light f -> Light f
@@ -36,11 +37,16 @@ transformLight worldToView _ (DiskLight lightPoint lightDirection lightRadius li
         (V4 dx dy dz dw) = worldToView !* (vector lightDirection)
     in DiskLight newPoint (V3 dx dy dz) lightRadius lightColor
 
+transformLight worldToView _ (SphereLight lightPoint lightRadius lightColor) =
+    let newPoint = (P (normalizePoint (worldToView !* (point (unP lightPoint)))))
+    in SphereLight newPoint lightRadius lightColor
+
 getLightColor :: Light f -> Color f
 getLightColor (EnvironmentLight color) = color
 getLightColor (PointLight _ color) = color
 getLightColor (DirectionalLight _ color) = color
 getLightColor (DiskLight _ _ _ color) = color
+getLightColor (SphereLight _ _ color) = color
 
 getLightRay :: (Epsilon f, RealFloat f, LowDiscrepancySequence s i f) => Point V3 f -> Light f -> s i f -> ((Ray f, f), s i f) -- Ray, distance to light
 
@@ -63,6 +69,16 @@ getLightRay position (DiskLight lightPoint lightDirection lightRadius _) gen0 =
         up = if lightDirection == (V3 0 1 0) then (V3 0 0 1) else (V3 0 1 0)
         right = normalize (up `cross` lightDirection)
         lightP = (unP lightPoint) ^+^ ((up ^* (sin theta) + right ^* (cos theta)) ^* lightRadius)
+        lightD = lightP ^-^ (unP position)
+    in ((Ray {rayOrigin = position, rayDirection = normalize (lightD)}, lightD `dot` lightD), gen1)
+
+getLightRay position (SphereLight lightPoint lightRadius _) gen0 =
+    let ((phi, theta), gen1) = sampleSphere gen0
+        sinPhi = sin phi
+        cosPhi = cos phi
+        sinTheta = sin theta
+        cosTheta = cos theta
+        lightP = (unP lightPoint) ^+^ (V3 (sinTheta * cosPhi) (sinTheta * sinPhi) cosTheta) ^* lightRadius
         lightD = lightP ^-^ (unP position)
     in ((Ray {rayOrigin = position, rayDirection = normalize (lightD)}, lightD `dot` lightD), gen1)
     
