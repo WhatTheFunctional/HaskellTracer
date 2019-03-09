@@ -169,6 +169,11 @@ diskLight0 = DiskLight (P (V3 300 300 300)) (V3 (-1) (-1) (-1)) 80 (RGB 0.1 0.5 
 sphereLight0 :: (Fractional f) => Light f
 sphereLight0 = SphereLight (P (V3 300 300 300)) 80 (RGB 1 0.5 0.1)
 
+-- Rectangle light scene
+
+rectangleLight0 :: (Fractional f) => Light f
+rectangleLight0 = RectangleLight (P (V3 300 300 300)) (V3 0 100 0) (V3 0 0 100) (RGB 0.1 1 0.5)
+
 -- Test functions
 
 testRayIntersectSphere :: IO ()
@@ -345,6 +350,23 @@ testRenderSphereLightScene =
                  (mkHaltonLDS (mkHaltonCache 1048576 2))
                  (mkStdGen 813580))
 
+testRenderRectangleLightScene :: IO ()
+testRenderRectangleLightScene =
+    do putStrLn "-- Writing rectangle light rectangle_light_scene.png"
+       let (spheres, g) = randomSpheres 1000 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+       writeParallelPNG "rectangle_light_scene.png"
+                (pixelTraceGenerator
+                 traceRays
+                 traceOneLight
+                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : spheres)))
+                 [rectangleLight0]
+                 (testSkyBlueRGB :: Color Double)
+                 randomSpheresCamera
+                 ((200 :: Int), 200, 2.0 :: Double, 2.2)
+                 (randomSampling 64 (perspectiveLens (pi / 3)))
+                 (mkHaltonLDS (mkHaltonCache 1048576 2))
+                 (mkStdGen 813580))
+
 
 runAll :: IO ()
 runAll = do putStrLn "Running tests"
@@ -413,8 +435,8 @@ runAll = do putStrLn "Running tests"
             let haltonLDS = mkHaltonLDS (mkHaltonCache 100 2) 0
             putStrLn "--Test Halton sample"
             putStrLn $ show $ sampleR (5 :: Float, 10) haltonLDS
-            putStrLn "--Test Halton quad"
-            putStrLn $ show $ sampleQuad (20 :: Float) 25 haltonLDS
+            putStrLn "--Test Halton rectangle"
+            putStrLn $ show $ sampleRectangle (20 :: Float) 25 haltonLDS
             putStrLn "--Test Halton disk"
             putStrLn $ show $ sampleDisk (32 :: Float) haltonLDS
             putStrLn "--Test Halton hemisphere"
@@ -436,6 +458,7 @@ runAll = do putStrLn "Running tests"
             testRenderEnvironmentLightScene 
             testRenderDiskLightScene 
             testRenderSphereLightScene 
+            testRenderRectangleLightScene 
 
 runJustRandomSpheres :: IO ()
 runJustRandomSpheres = testRenderRandomSpheresScene
@@ -449,9 +472,13 @@ runJustDiskLight = testRenderDiskLightScene
 runJustSphereLight :: IO ()
 runJustSphereLight = testRenderSphereLightScene 
 
+runJustRectangleLight :: IO ()
+runJustRectangleLight = testRenderRectangleLightScene 
+
 main :: IO ()
 --main = runAll
 --main = runJustRandomSpheres
 --main = runJustEnvironmentLight
 --main = runJustDiskLight
-main = runJustSphereLight
+--main = runJustSphereLight
+main = runJustRectangleLight

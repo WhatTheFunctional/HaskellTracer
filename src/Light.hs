@@ -18,6 +18,7 @@ data Light f = EnvironmentLight (Color f)
                | DirectionalLight (V3 f) (Color f)
                | DiskLight (Point V3 f) (V3 f) f (Color f) -- Point, normal, and radius
                | SphereLight (Point V3 f) f (Color f) -- Point and radius
+               | RectangleLight (Point V3 f) (V3 f) (V3 f) (Color f) -- Point and radius
                deriving (Show, Eq)
 
 transformLight :: (Floating f) => M44 f -> M44 f -> Light f -> Light f
@@ -41,12 +42,19 @@ transformLight worldToView _ (SphereLight lightPoint lightRadius lightColor) =
     let newPoint = (P (normalizePoint (worldToView !* (point (unP lightPoint)))))
     in SphereLight newPoint lightRadius lightColor
 
+transformLight worldToView _ (RectangleLight lightPoint lightW lightH lightColor) =
+    let newPoint = (P (normalizePoint (worldToView !* (point (unP lightPoint)))))
+        (V4 wx wy wz ww) = worldToView !* (vector lightW)
+        (V4 hx hy hz hw) = worldToView !* (vector lightH)
+    in RectangleLight newPoint (V3 wx wy wz) (V3 hx hy hz) lightColor
+
 getLightColor :: Light f -> Color f
 getLightColor (EnvironmentLight color) = color
 getLightColor (PointLight _ color) = color
 getLightColor (DirectionalLight _ color) = color
 getLightColor (DiskLight _ _ _ color) = color
 getLightColor (SphereLight _ _ color) = color
+getLightColor (RectangleLight _ _ _ color) = color
 
 getLightRay :: (Epsilon f, RealFloat f, LowDiscrepancySequence s i f) => Point V3 f -> Light f -> s i f -> ((Ray f, f), s i f) -- Ray, distance to light
 
@@ -81,4 +89,10 @@ getLightRay position (SphereLight lightPoint lightRadius _) gen0 =
         lightP = (unP lightPoint) ^+^ (V3 (sinTheta * cosPhi) (sinTheta * sinPhi) cosTheta) ^* lightRadius
         lightD = lightP ^-^ (unP position)
     in ((Ray {rayOrigin = position, rayDirection = normalize (lightD)}, lightD `dot` lightD), gen1)
-    
+
+getLightRay position (RectangleLight lightPoint lightW lightH _) gen0 =
+    let ((x, y), gen1) = sampleRectangle 1 1 gen0
+        lightP = (unP lightPoint) ^+^ (lightW ^* x) ^+^ (lightH ^* y)
+        lightD = lightP ^-^ (unP position)
+    in ((Ray {rayOrigin = position, rayDirection = normalize (lightD)}, lightD `dot` lightD), gen1)
+

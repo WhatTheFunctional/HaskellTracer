@@ -6,7 +6,7 @@ module Sampling
     , Halton (..)
     , mkHaltonCache
     , mkHaltonLDS
-    , sampleQuad
+    , sampleRectangle
     , sampleDisk
     , sampleHemisphere
     , sampleSphere
@@ -47,8 +47,8 @@ instance (Num f, Ord f, Integral i) => LowDiscrepancySequence Halton i f where
     sample (Halton index count cache) = (cache !! (fromIntegral index), Halton ((index + 1) `mod` count) count cache)
     sampleR (minRange, maxRange) (Halton index count cache) = ((cache !! (fromIntegral index)) * (maxRange - minRange) + minRange, Halton ((index + 1) `mod` count) count cache)
 
-sampleQuad :: (Fractional f, LowDiscrepancySequence s i f) => f -> f -> s i f -> ((f, f), s i f)
-sampleQuad w h gen0 =
+sampleRectangle :: (Fractional f, LowDiscrepancySequence s i f) => f -> f -> s i f -> ((f, f), s i f)
+sampleRectangle w h gen0 =
     let (x, gen1) = sampleR (0, w) gen0
         (y, gen2) = sampleR (0, h) gen1
     in ((x, y), gen2)
@@ -93,7 +93,7 @@ randomSampling count lensFunction pixelSize w h x y gen =
         sampleSize = pixelSize
         samplesIndices = [0..(count - 1)]
     in foldr (\c (accumulator, gen1) ->
-                let ((rayX, rayY), gen2) = sampleQuad sampleSize sampleSize gen1
+                let ((rayX, rayY), gen2) = sampleRectangle sampleSize sampleSize gen1
                     ray = lensFunction w h (x + rayX - halfSampleSize) (y + rayY - halfSampleSize)
                 in (ray : accumulator, gen2)) ([], gen) samplesIndices
 
