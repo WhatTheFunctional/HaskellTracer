@@ -9,6 +9,7 @@ module Accelerator
     ) where
 
 import Data.List
+import Control.Parallel
 import Numeric.Limits
 import Linear
 import Linear.Affine
@@ -42,7 +43,7 @@ getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices =
                                    else 0)
         invAABBSurfaceArea = 1 / aabbSurfaceArea
         noSplitCost = ti * (fromIntegral numObjects)
-    in foldr (\(split, index) (minSplit, minSplitCost, minLeftAABB, minRightAABB) ->
+    in foldl' (\(minSplit, minSplitCost, minLeftAABB, minRightAABB) (split, index) ->
                  let (leftAABB, rightAABB) = splitBoundingBox split aabb
                      bonusFactor = (1 - (bonusFunction index))
                      leftFactor = (fromIntegral index) * (boundingBoxSurfaceArea leftAABB) * invAABBSurfaceArea
@@ -61,14 +62,14 @@ splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _)
         maxB = getCoord maxV
         newLeftObjects = if minB <= split || maxB <= split then object : leftObjects else leftObjects
         newRightObjects = if minB >= split || maxB >= split then object : rightObjects else rightObjects
-    in splitObjects getCoord newLeftObjects newRightObjects splitV objects
+    in newLeftObjects `par` newRightObjects `pseq` splitObjects getCoord newLeftObjects newRightObjects splitV objects
 
 splitBestAxis :: (Ord f, RealFloat f, Integral i) => (V3 f -> f) -> (f -> V3 f) -> i -> i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
 splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emptyBonus aabb objects =
     let shapeBoundingBoxes = fmap (\(Object shape _ _) -> getShapeBoundingBox shape) objects
-        getSplits = (\objects -> foldr (\(AABB _ v0 v1) accumulator -> (getCoord v0) : (getCoord v1) : accumulator) [] objects)
+        getSplits = (\objects -> foldl' (\accumulator (AABB _ v0 v1) -> (getCoord v0) : (getCoord v1) : accumulator) [] objects)
         splits = fmap getSplitVector (sort (getSplits shapeBoundingBoxes))
-        splitIndices = foldr (\index accumulator -> index : (index + 1) : accumulator) [] [0..(numObjects - 1)]
+        splitIndices = foldl' (\accumulator index -> index : (index + 1) : accumulator) [] [0..(numObjects - 1)]
         splitsAndIndices = zip splits splitIndices
         aabbSurfaceArea = boundingBoxSurfaceArea aabb
         (minSplit, minSplitCost, minLeftAABB, minRightAABB) = getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices
@@ -77,7 +78,7 @@ splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emp
        else let (leftObjects, rightObjects) = splitObjects getCoord [] [] minSplit objects
                 leftNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minLeftAABB leftObjects
                 rightNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minRightAABB rightObjects
-            in KDBranch minSplit leftNode rightNode
+            in leftNode `par` rightNode `pseq` KDBranch minSplit leftNode rightNode
 
 splitNode :: (Ord f, RealFloat f, Integral i) => i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
 splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) objects =
@@ -109,9 +110,9 @@ buildKDTree ti tt emptyBonus maxDepthFunction [] = KDTree (AABB identity (V3 inf
 buildKDTree ti tt emptyBonus maxDepthFunction objects =
     let (planes, nonPlanes) = splitPlanes ([], []) objects
         maxDepth = maxDepthFunction (fromIntegral (length nonPlanes))
-        treeAABB = foldr (\aabb accumulatorAABB -> 
-                              case mergeBoundingBoxes aabb accumulatorAABB of
-                                  Nothing -> accumulatorAABB
-                                  Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
-    in KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
+        treeAABB = foldl' (\accumulatorAABB aabb -> 
+                               case mergeBoundingBoxes aabb accumulatorAABB of
+                                   Nothing -> accumulatorAABB
+                                   Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
+    in maxDepth `par` treeAABB `pseq` KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
 

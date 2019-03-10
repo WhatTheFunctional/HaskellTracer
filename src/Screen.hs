@@ -4,6 +4,7 @@ module Screen
 
 import System.Random
 import Linear
+import Data.List
 
 import Camera
 import Ray
@@ -32,9 +33,9 @@ pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (
     let invGamma = 1 / gamma
         w = fromIntegral width
         h = fromIntegral height
-        (randomOffset, rgen3) = foldr (\x (accumulator, rgen1) ->
-                                           let (r, rgen2) = randomR (0, (width * height)) rgen1
-                                           in ((fromIntegral r) : accumulator, rgen2)) ([], rgen0) [0..(width * height - 1)]
+        (randomOffset, rgen3) = foldl' (\(accumulator, rgen1) x ->
+                                            let (r, rgen2) = randomR (0, (width * height)) rgen1
+                                            in ((fromIntegral r) : accumulator, rgen2)) ([], rgen0) [0..(width * height - 1)]
     in (fromIntegral width,
         fromIntegral height,
         (\pixelX pixelY -> let index = pixelX + pixelY * (fromIntegral width)
@@ -47,9 +48,9 @@ pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (
                                innerTraceFunction = traceFunction transformedScene bgColor
                                innerLightingFunction = lightingFunction innerTraceFunction transformedLights bgColor
                                (rays, gen0) = samplingFunction pixelSize w h worldX worldY gen
-                               (colorSum, gen4) = foldr (\ray (accumulatedColor, gen1) ->
-                                                             let ((rayTraceResult, newRay), gen2) = innerTraceFunction ray gen1
-                                                                 (lightTraceResult, gen3) = innerLightingFunction (rayTraceResult, newRay) gen2
-                                                             in (lightTraceResult ^+^ accumulatedColor, gen3)) ((pure 0), gen0) rays
+                               (colorSum, gen4) = foldl' (\(accumulatedColor, gen1) ray ->
+                                                              let ((rayTraceResult, newRay), gen2) = innerTraceFunction ray gen1
+                                                                  (lightTraceResult, gen3) = innerLightingFunction (rayTraceResult, newRay) gen2
+                                                              in (lightTraceResult ^+^ accumulatedColor, gen3)) ((pure 0), gen0) rays
                            in fmap (\x -> x ** invGamma) (colorSum ^/ fromIntegral (length rays))))
 

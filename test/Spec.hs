@@ -1,3 +1,4 @@
+import Control.DeepSeq
 import Data.List
 import Numeric.Limits
 import System.Random
@@ -19,6 +20,7 @@ import Light
 import Material
 import Shading
 import Accelerator
+import Mesh
 
 -- Test objects
 
@@ -173,6 +175,11 @@ sphereLight0 = SphereLight (P (V3 300 300 300)) 80 (RGB 1 0.5 0.1)
 
 rectangleLight0 :: (Fractional f) => Light f
 rectangleLight0 = RectangleLight (P (V3 300 300 300)) (V3 0 100 0) (V3 0 0 100) (RGB 0.1 1 0.5)
+
+-- Bunny light scene
+
+bunnyLight0 :: (Fractional f) => Light f
+bunnyLight0 = RectangleLight (P (V3 300 300 300)) (V3 0 100 0) (V3 0 0 100) (RGB 1 1 1)
 
 -- Test functions
 
@@ -346,7 +353,7 @@ testRenderSphereLightScene =
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
                  ((200 :: Int), 200, 2.0 :: Double, 2.2)
-                 (randomSampling 64 (perspectiveLens (pi / 3)))
+                 (randomSampling 8 (perspectiveLens (pi / 3)))
                  (mkHaltonLDS (mkHaltonCache 1048576 2))
                  (mkStdGen 813580))
 
@@ -363,7 +370,23 @@ testRenderRectangleLightScene =
                  (testSkyBlueRGB :: Color Double)
                  randomSpheresCamera
                  ((200 :: Int), 200, 2.0 :: Double, 2.2)
-                 (randomSampling 64 (perspectiveLens (pi / 3)))
+                 (randomSampling 8 (perspectiveLens (pi / 3)))
+                 (mkHaltonLDS (mkHaltonCache 1048576 2))
+                 (mkStdGen 813580))
+
+testRenderBunnyScene :: (Control.DeepSeq.NFData f, Epsilon f, RealFloat f) => [Object f] -> IO ()
+testRenderBunnyScene objects =
+    do putStrLn "-- Writing bunny scene to bunny_scene.png"
+       writeParallelPNG "bunny_scene.png"
+                (pixelTraceGenerator
+                 traceRays
+                 traceOneLight
+                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : objects)))
+                 [bunnyLight0]
+                 testSkyBlueRGB
+                 randomSpheresCamera
+                 ((640 :: Int), 480, 1.0, 2.2)
+                 (randomSampling 8 (perspectiveLens (pi / 3)))
                  (mkHaltonLDS (mkHaltonCache 1048576 2))
                  (mkStdGen 813580))
 
@@ -444,6 +467,9 @@ runAll = do putStrLn "Running tests"
             putStrLn "--Test Halton sphere"
             putStrLn $ show $ (sampleSphere haltonLDS :: ((Float, Float), Halton Int Float))
             putStrLn $ show $ [(x, y) | x <- [0..10], y <- [0..10]]
+            putStrLn "--Test loading bunny"
+            mesh <- loadMeshPLY identity (ColorMaterial (testRedRGB :: Color Float)) colorShader "bun_zipper_res4.ply"
+            putStrLn $ show $ fmap (take 20) mesh
             testRayIntersectSphere
             testRayIntersectPlane
             testRayMissSphere
@@ -475,10 +501,26 @@ runJustSphereLight = testRenderSphereLightScene
 runJustRectangleLight :: IO ()
 runJustRectangleLight = testRenderRectangleLightScene 
 
+runJustRenderBunny :: IO ()
+runJustRenderBunny =
+    do let s = 3000
+           transform = (V4 (V4 s 0 0 0)
+                           (V4 0 s 0 0)
+                           (V4 0 0 s 0)
+                           (V4 0 0 0 1))
+       mesh <- loadMeshPLY transform
+                           (PlasticMaterial (RGB 0.2 0.2 0.5) 1 (RGB 0.4 0.4 0.8) 1 2.5)
+                           lambertShader
+                           "bun_zipper_res2.ply"
+       case mesh of
+           Nothing -> return ()
+           Just objects -> testRenderBunnyScene (objects :: [Object Double])
+
 main :: IO ()
 --main = runAll
 --main = runJustRandomSpheres
 --main = runJustEnvironmentLight
 --main = runJustDiskLight
 --main = runJustSphereLight
-main = runJustRectangleLight
+--main = runJustRectangleLight
+main = runJustRenderBunny

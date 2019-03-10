@@ -15,6 +15,7 @@ module Sampling
     , randomSampling
     ) where
 
+import Data.List
 import Lens
 import Ray
 
@@ -92,8 +93,8 @@ randomSampling count lensFunction pixelSize w h x y gen =
     let halfSampleSize = pixelSize / 2
         sampleSize = pixelSize
         samplesIndices = [0..(count - 1)]
-    in foldr (\c (accumulator, gen1) ->
-                let ((rayX, rayY), gen2) = sampleRectangle sampleSize sampleSize gen1
-                    ray = lensFunction w h (x + rayX - halfSampleSize) (y + rayY - halfSampleSize)
-                in (ray : accumulator, gen2)) ([], gen) samplesIndices
+    in foldl' (\(accumulator, gen1) c ->
+                 let ((rayX, rayY), gen2) = sampleRectangle sampleSize sampleSize gen1
+                     ray = lensFunction w h (x + rayX - halfSampleSize) (y + rayY - halfSampleSize)
+                 in (ray : accumulator, gen2)) ([], gen) samplesIndices
 

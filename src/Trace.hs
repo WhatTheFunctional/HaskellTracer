@@ -5,7 +5,9 @@ module Trace
     , traceOneLight
     ) where
 
+import Control.Parallel
 import Numeric.Limits
+import Data.List
 import Linear
 import Linear.Affine
 
@@ -33,13 +35,13 @@ emptyTraceResult bgColor = TraceResult initialIntersection (ColorMaterial bgColo
 traceRays :: (Epsilon f, RealFloat f, Ord f, LowDiscrepancySequence s i f) => Scene f -> Color f -> Ray f -> s i f -> ((TraceResult f, Ray f), s i f)
 
 traceRays (ListScene objects) bgColor ray gen = 
-    ((foldr (\(Object shape objectMaterial objectShader) traceResult@(TraceResult (Intersection {tMin = traceTMin}) material shader) ->
-                 case rayIntersection ray shape of
-                     Nothing -> traceResult
-                     Just objectIntersection@(Intersection {tMin = tm}) ->
-                         if tm < traceTMin
-                         then TraceResult objectIntersection objectMaterial objectShader
-                         else traceResult) (emptyTraceResult bgColor) objects, ray), gen)
+    ((foldl' (\traceResult@(TraceResult (Intersection {tMin = traceTMin}) material shader) (Object shape objectMaterial objectShader) ->
+                  case rayIntersection ray shape of
+                      Nothing -> traceResult
+                      Just objectIntersection@(Intersection {tMin = tm}) ->
+                          if tm < traceTMin
+                          then TraceResult objectIntersection objectMaterial objectShader
+                          else traceResult) (emptyTraceResult bgColor) objects, ray), gen)
 
 traceRays (KDScene (KDTree aabb planes node)) bgColor ray gen =
     let ((planeTraceResult@(TraceResult (Intersection {tMin = planeTMin}) _ _), planeRay), gen1) = traceRays (ListScene planes) bgColor ray gen
@@ -67,7 +69,8 @@ traceKDNode (KDBranch split left right) aabb bgColor ray gen =
                     Just objectIntersection@(Intersection {tMin = rightTMin}) -> rightTMin
         leftIntersection = tLeft /= infinity
         rightIntersection = tRight /= infinity
-    in if leftIntersection && rightIntersection
+    in leftIntersection `par` rightIntersection `pseq`
+       if leftIntersection && rightIntersection
        then if tLeft <= tRight
             then let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen1) = traceKDNode left leftAABB bgColor ray gen
                  in if leftTMin /= infinity
@@ -104,12 +107,12 @@ traceAllLights traceFunction lights bgColor ((TraceResult (Intersection {interse
     in if traceTMin == infinity
        then (bgColor, gen0)
        else let numLights = length lights
-                (color, gen3) = foldr (\light (accumulatedColor, gen1) ->
-                                           let ((lightRay, lightT), gen2) = innerGetLightRay light gen1
-                                               (((TraceResult (Intersection {tMin = lightTMin}) _ _), traceRay), gen3) = traceFunction lightRay gen2
-                                           in if lightT <= lightTMin
-                                              then ((shadeLight material point normal shader ray lightRay (getLightColor light)) ^+^ accumulatedColor, gen3)
-                                              else (accumulatedColor, gen3)) ((pure 0), gen0) lights
+                (color, gen3) = foldl' (\(accumulatedColor, gen1) light ->
+                                            let ((lightRay, lightT), gen2) = innerGetLightRay light gen1
+                                                (((TraceResult (Intersection {tMin = lightTMin}) _ _), traceRay), gen3) = traceFunction lightRay gen2
+                                            in if lightT <= lightTMin
+                                               then ((shadeLight material point normal shader ray lightRay (getLightColor light)) ^+^ accumulatedColor, gen3)
+                                               else (accumulatedColor, gen3)) ((pure 0), gen0) lights
             in (color ^/ (fromIntegral numLights), gen3)
 
 -- One light tracer (Random)

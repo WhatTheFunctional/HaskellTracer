@@ -34,11 +34,12 @@ generatorTuple :: (RealFrac f) => (Int -> Int -> Color f) -> (Int, Int) -> Color
 generatorTuple generator (x, y) = generator x y
 
 colorToPixelRGB8 :: (RealFrac f) => Int -> [Color f] -> (Int -> Int -> PixelRGB8)
-colorToPixelRGB8 width colors = \worldX worldY -> toPixelRGB8 (colors !! (worldX + worldY * width))
+colorToPixelRGB8 height colors = \worldX worldY -> toPixelRGB8 (colors !! (worldY + worldX * height))
 
 writeParallelPNG :: (NFData f, RealFrac f) => String -> (Int, Int, (Int -> Int -> Color f)) -> IO ()
 writeParallelPNG fileName (width, height, generator) =
-    let coordinates = [(y, x) | x <- [0..(width - 1)], y <- [0..(height - 1)]]
+    let coordinates = [(x, y) | x <- [0..(width - 1)], y <- [0..(height - 1)]]
     in do colors <- evaluate $ force $ (map (generatorTuple generator) coordinates `using` parListChunk 32 rseq)
-          let !pixelRGB8Generator = colors `pseq` colorToPixelRGB8 width colors
+          let pixelRGB8Generator = colorToPixelRGB8 height colors
           savePngImage fileName (ImageRGB8 (generateImage pixelRGB8Generator width height))
+
