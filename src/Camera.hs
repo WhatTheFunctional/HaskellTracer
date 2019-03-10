@@ -14,7 +14,8 @@ data Camera f = Camera (Point V3 f) (V3 f) (V3 f) -- Origin, look, and up
 
 data CameraTransforms f = CameraTransforms { w2v :: M44 f -- World to view
                                            , nM :: M44 f -- Normal matrix
-                                           } deriving (Show, Eq)
+                                           }
+                        deriving (Show, Eq)
 
 cameraLookAt :: (Epsilon f, Floating f) => Point V3 f -> V3 f -> V3 f -> Camera f
 cameraLookAt cameraOrigin cameraPoint cameraUp =

@@ -62,7 +62,7 @@ splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _)
         maxB = getCoord maxV
         newLeftObjects = if minB <= split || maxB <= split then object : leftObjects else leftObjects
         newRightObjects = if minB >= split || maxB >= split then object : rightObjects else rightObjects
-    in newLeftObjects `par` newRightObjects `pseq` splitObjects getCoord newLeftObjects newRightObjects splitV objects
+    in splitObjects getCoord newLeftObjects newRightObjects splitV objects
 
 splitBestAxis :: (Ord f, RealFloat f, Integral i) => (V3 f -> f) -> (f -> V3 f) -> i -> i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
 splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emptyBonus aabb objects =
@@ -78,7 +78,7 @@ splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emp
        else let (leftObjects, rightObjects) = splitObjects getCoord [] [] minSplit objects
                 leftNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minLeftAABB leftObjects
                 rightNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minRightAABB rightObjects
-            in leftNode `par` rightNode `pseq` KDBranch minSplit leftNode rightNode
+            in KDBranch minSplit leftNode rightNode
 
 splitNode :: (Ord f, RealFloat f, Integral i) => i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
 splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) objects =
@@ -114,5 +114,5 @@ buildKDTree ti tt emptyBonus maxDepthFunction objects =
                                case mergeBoundingBoxes aabb accumulatorAABB of
                                    Nothing -> accumulatorAABB
                                    Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
-    in maxDepth `par` treeAABB `pseq` KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
+    in KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
 

@@ -15,7 +15,8 @@ import Material
 import Light
 
 -- Contains all information required to shade a surface point
-data ShadePoint f = ShadePoint (Material f) (V3 f) (V3 f) (V3 f) deriving (Show, Eq)
+data ShadePoint f = ShadePoint (Material f) (V3 f) (V3 f) (V3 f)
+                  deriving (Show, Eq)
 
 shadeLight :: (Epsilon f, Floating f, Ord f) => Material f -> Point V3 f -> V3 f -> (ShadePoint f -> Color f) -> Ray f -> Ray f -> Color f -> Color f
 

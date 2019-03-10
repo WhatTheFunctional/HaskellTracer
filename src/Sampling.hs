@@ -25,7 +25,7 @@ class LowDiscrepancySequence s i f where
     sampleR :: (f, f) -> s i f -> (f, s i f)
 
 data Halton i f = Halton i i [f] -- Index, count, cache
-              deriving (Show, Eq)
+                deriving (Show, Eq)
 
 haltonIteration :: (Fractional f, Ord f, Integral i) => i -> i -> f -> f -> f
 haltonIteration !base !index !fraction !result =

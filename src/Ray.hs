@@ -14,12 +14,14 @@ import Geometry
 
 data Ray f = Ray { rayOrigin :: Point V3 f
                  , rayDirection :: V3 f
-                 } deriving (Show, Eq)
+                 }
+           deriving (Show, Eq)
 
 data Intersection f = Intersection { intersectionPoint :: Point V3 f
                                    , intersectionNormal :: V3 f
                                    , tMin :: f
-                                   } deriving (Show, Eq)
+                                   }
+                    deriving (Show, Eq)
 
 rayEpsilon :: (Fractional f) => f
 rayEpsilon = 1e-5

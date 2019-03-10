@@ -469,7 +469,7 @@ runAll = do putStrLn "Running tests"
             putStrLn $ show $ [(x, y) | x <- [0..10], y <- [0..10]]
             putStrLn "--Test loading bunny"
             mesh <- loadMeshPLY identity (ColorMaterial (testRedRGB :: Color Float)) colorShader "bun_zipper_res4.ply"
-            putStrLn $ show $ fmap (take 20) mesh
+            putStrLn $ show $ fmap (\(plyHeader, m) -> take 20 m) mesh
             testRayIntersectSphere
             testRayIntersectPlane
             testRayMissSphere
@@ -503,7 +503,7 @@ runJustRectangleLight = testRenderRectangleLightScene
 
 runJustRenderBunny :: IO ()
 runJustRenderBunny =
-    do let s = 3000
+    do let s = 2000
            transform = (V4 (V4 s 0 0 0)
                            (V4 0 s 0 0)
                            (V4 0 0 s 0)
@@ -511,10 +511,13 @@ runJustRenderBunny =
        mesh <- loadMeshPLY transform
                            (PlasticMaterial (RGB 0.2 0.2 0.5) 1 (RGB 0.4 0.4 0.8) 1 2.5)
                            lambertShader
-                           "bun_zipper_res2.ply"
+                           "bun_zipper_res3.ply"
        case mesh of
            Nothing -> return ()
-           Just objects -> testRenderBunnyScene (objects :: [Object Double])
+           Just (plyHeader, objects) ->
+               do putStrLn $ show $ plyHeader
+                  putStrLn $ ("Mesh size: " ++ (show $ length objects))
+                  testRenderBunnyScene (objects :: [Object Double])
 
 main :: IO ()
 --main = runAll

@@ -24,6 +24,9 @@ import Sampling
 
 data TraceResult f = TraceResult (Intersection f) (Material f) (ShadePoint f -> Color f)
 
+instance (Show f) => Show (TraceResult f) where
+    show (TraceResult intersection material shaderFunction) = "TraceResult (" ++ (show intersection) ++ ") (" ++ (show material) ++ ")"
+
 initialIntersection :: (RealFloat f) => Intersection f
 initialIntersection = Intersection {intersectionPoint = (P (V3 0 0 0)), intersectionNormal = (V3 0 0 1), tMin = infinity}
 
@@ -69,8 +72,7 @@ traceKDNode (KDBranch split left right) aabb bgColor ray gen =
                     Just objectIntersection@(Intersection {tMin = rightTMin}) -> rightTMin
         leftIntersection = tLeft /= infinity
         rightIntersection = tRight /= infinity
-    in leftIntersection `par` rightIntersection `pseq`
-       if leftIntersection && rightIntersection
+    in if leftIntersection && rightIntersection
        then if tLeft <= tRight
             then let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen1) = traceKDNode left leftAABB bgColor ray gen
                  in if leftTMin /= infinity
