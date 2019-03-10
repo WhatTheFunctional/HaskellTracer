@@ -22,20 +22,25 @@ import Shading
 import Accelerator
 import Sampling
 
-data TraceResult f = TraceResult (Intersection f) (Material f) (ShadePoint f -> Color f)
+data TraceResult = TraceResult Intersection Material (ShadePoint -> Color Double)
 
-instance (Show f) => Show (TraceResult f) where
+instance Show TraceResult where
     show (TraceResult intersection material shaderFunction) = "TraceResult (" ++ (show intersection) ++ ") (" ++ (show material) ++ ")"
 
-initialIntersection :: (RealFloat f) => Intersection f
+initialIntersection :: Intersection
 initialIntersection = Intersection {intersectionPoint = (P (V3 0 0 0)), intersectionNormal = (V3 0 0 1), tMin = infinity}
 
-emptyTraceResult :: (RealFloat f) => Color f -> TraceResult f
+emptyTraceResult :: Color Double -> TraceResult
 emptyTraceResult bgColor = TraceResult initialIntersection (ColorMaterial bgColor) colorShader
 
 -- List tracer iterates through a list of objects
 
-traceRays :: (Epsilon f, RealFloat f, Ord f, LowDiscrepancySequence s i f) => Scene f -> Color f -> Ray f -> s i f -> ((TraceResult f, Ray f), s i f)
+traceRays :: (LowDiscrepancySequence s)
+          => Scene
+          -> Color Double
+          -> Ray
+          -> s
+          -> ((TraceResult, Ray), s)
 
 traceRays (ListScene objects) bgColor ray gen = 
     ((foldl' (\traceResult@(TraceResult (Intersection {tMin = traceTMin}) material shader) (Object shape objectMaterial objectShader) ->
@@ -58,7 +63,13 @@ traceRays (KDScene (KDTree aabb planes node)) bgColor ray gen =
 
 -- KD node tracer
 
-traceKDNode :: (Epsilon f, RealFloat f, LowDiscrepancySequence s i f) => KDNode f -> Shape f -> Color f -> Ray f -> s i f -> ((TraceResult f, Ray f), s i f)
+traceKDNode :: (LowDiscrepancySequence s)
+            => KDNode
+            -> Shape
+            -> Color Double
+            -> Ray
+            -> s
+            -> ((TraceResult, Ray), s)
 
 traceKDNode (KDLeaf objects) _ bgColor ray gen = traceRays (ListScene objects) bgColor ray gen
 
@@ -102,7 +113,15 @@ traceKDNode (KDBranch split left right) aabb bgColor ray gen =
 
 -- All lights tracer
 
-traceAllLights :: (Epsilon f, RealFloat f, Ord f, LowDiscrepancySequence s i f) => (Ray f -> s i f -> ((TraceResult f, Ray f), s i f)) -> [Light f] -> Color f -> (TraceResult f, Ray f) -> s i f -> (Color f, s i f)
+traceAllLights :: (LowDiscrepancySequence s)
+               => (Ray
+                   -> s
+                   -> ((TraceResult, Ray), s))
+               -> [Light]
+               -> Color Double
+               -> (TraceResult, Ray)
+               -> s
+               -> (Color Double, s)
 traceAllLights traceFunction lights bgColor ((TraceResult _ (ColorMaterial color) _), ray) gen0 = (color, gen0)
 traceAllLights traceFunction lights bgColor ((TraceResult (Intersection {intersectionPoint = point, intersectionNormal = normal, tMin = traceTMin}) material shader), ray) gen0 =
     let innerGetLightRay = getLightRay point
@@ -119,7 +138,15 @@ traceAllLights traceFunction lights bgColor ((TraceResult (Intersection {interse
 
 -- One light tracer (Random)
 
-traceOneLight :: (Epsilon f, RealFloat f, Ord f, LowDiscrepancySequence s i f) => (Ray f -> s i f -> ((TraceResult f, Ray f), s i f)) -> [Light f] -> Color f -> (TraceResult f, Ray f) -> s i f -> (Color f, s i f)
+traceOneLight :: (LowDiscrepancySequence s)
+              => (Ray
+                  -> s
+                  -> ((TraceResult, Ray), s))
+              -> [Light]
+              -> Color Double
+              -> (TraceResult, Ray)
+              -> s
+              -> (Color Double, s)
 traceOneLight traceFunction lights bgColor ((TraceResult _ (ColorMaterial color) _), ray) gen0 = (color, gen0)
 traceOneLight traceFunction lights bgColor ((TraceResult (Intersection {intersectionPoint = point, intersectionNormal = normal, tMin = traceTMin}) material shader), ray) gen0 =
     if traceTMin == infinity

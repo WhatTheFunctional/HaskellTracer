@@ -13,15 +13,15 @@ import Color
 import Ray
 import Sampling
 
-data Light f = EnvironmentLight (Color f)
-               | PointLight (Point V3 f) (Color f)
-               | DirectionalLight (V3 f) (Color f)
-               | DiskLight (Point V3 f) (V3 f) f (Color f) -- Point, normal, and radius
-               | SphereLight (Point V3 f) f (Color f) -- Point and radius
-               | RectangleLight (Point V3 f) (V3 f) (V3 f) (Color f) -- Point and radius
-               deriving (Show, Eq)
+data Light = EnvironmentLight (Color Double)
+           | PointLight (Point V3 Double) (Color Double)
+           | DirectionalLight (V3 Double) (Color Double)
+           | DiskLight (Point V3 Double) (V3 Double) Double (Color Double) -- Point, normal, and radius
+           | SphereLight (Point V3 Double) Double (Color Double) -- Point and radius
+           | RectangleLight (Point V3 Double) (V3 Double) (V3 Double) (Color Double) -- Point and radius
+           deriving (Show, Eq)
 
-transformLight :: (Floating f) => M44 f -> M44 f -> Light f -> Light f
+transformLight :: M44 Double -> M44 Double -> Light -> Light
 
 transformLight _ _ (EnvironmentLight lightColor) =
     EnvironmentLight lightColor
@@ -48,7 +48,7 @@ transformLight worldToView _ (RectangleLight lightPoint lightW lightH lightColor
         (V4 hx hy hz hw) = worldToView !* (vector lightH)
     in RectangleLight newPoint (V3 wx wy wz) (V3 hx hy hz) lightColor
 
-getLightColor :: Light f -> Color f
+getLightColor :: Light -> Color Double
 getLightColor (EnvironmentLight color) = color
 getLightColor (PointLight _ color) = color
 getLightColor (DirectionalLight _ color) = color
@@ -56,7 +56,11 @@ getLightColor (DiskLight _ _ _ color) = color
 getLightColor (SphereLight _ _ color) = color
 getLightColor (RectangleLight _ _ _ color) = color
 
-getLightRay :: (Epsilon f, RealFloat f, LowDiscrepancySequence s i f) => Point V3 f -> Light f -> s i f -> ((Ray f, f), s i f) -- Ray, distance to light
+getLightRay :: (LowDiscrepancySequence s)
+            => Point V3 Double
+            -> Light
+            -> s
+            -> ((Ray, Double), s) -- Ray, distance to light
 
 getLightRay position (EnvironmentLight _) gen0 = 
     let ((phi, theta), gen1) = sampleSphere gen0

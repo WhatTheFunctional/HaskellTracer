@@ -12,21 +12,21 @@ import Linear.Matrix
 
 import Geometry
 
-data Ray f = Ray { rayOrigin :: Point V3 f
-                 , rayDirection :: V3 f
-                 }
-           deriving (Show, Eq)
+data Ray = Ray { rayOrigin :: Point V3 Double
+               , rayDirection :: V3 Double
+               }
+         deriving (Show, Eq)
 
-data Intersection f = Intersection { intersectionPoint :: Point V3 f
-                                   , intersectionNormal :: V3 f
-                                   , tMin :: f
-                                   }
-                    deriving (Show, Eq)
+data Intersection = Intersection { intersectionPoint :: Point V3 Double
+                                 , intersectionNormal :: V3 Double
+                                 , tMin :: Double
+                                 }
+                  deriving (Show, Eq)
 
-rayEpsilon :: (Fractional f) => f
+rayEpsilon :: Double
 rayEpsilon = 1e-5
 
-rayIntersection :: (Epsilon f, Floating f, Ord f) => Ray f -> Shape f -> Maybe (Intersection f)
+rayIntersection :: Ray -> Shape -> Maybe Intersection
 
 rayIntersection (Ray {rayOrigin = ro, rayDirection = rd}) (Plane planePoint planeNormal) = 
     let denominator = (rd `dot` planeNormal)

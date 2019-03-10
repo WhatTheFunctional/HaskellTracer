@@ -4,8 +4,8 @@ module Material
 
 import Color
 
-data Material f = ColorMaterial (Color f) -- Color (No shading)
-                  | MatteMaterial (Color f) f -- Diffuse, kD
-                  | PlasticMaterial (Color f) f (Color f) f f -- Diffuse, kD, Specular, kS, kExp
-                  deriving (Show, Eq)
+data Material = ColorMaterial (Color Double) -- Color (No shading)
+              | MatteMaterial (Color Double) Double -- Diffuse, kD
+              | PlasticMaterial (Color Double) Double (Color Double) Double Double -- Diffuse, kD, Specular, kS, kExp
+              deriving (Show, Eq)
 

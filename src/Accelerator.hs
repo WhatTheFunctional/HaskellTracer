@@ -17,26 +17,26 @@ import Linear.Affine
 import Geometry
 import Object
 
-data KDNode f = KDLeaf [Object f] -- Leaf objects
-              | KDBranch (V3 f) (KDNode f) (KDNode f) -- Split and child-nodes
+data KDNode = KDLeaf [Object] -- Leaf objects
+              | KDBranch (V3 Double) (KDNode) (KDNode) -- Split and child-nodes
               deriving (Show)
 
-data KDTree f = KDTree (Shape f) [Object f] (KDNode f) -- AABB, planes and root node
+data KDTree = KDTree (Shape) [Object] (KDNode) -- AABB, planes and root node
               deriving (Show)
 
-defaultTi :: (Num f) => f
+defaultTi :: Double
 defaultTi = 80
 
-defaultTt :: (Num f) => f
+defaultTt :: Double
 defaultTt = 1
 
-defaultEmptyBonus :: (Fractional f) => f
+defaultEmptyBonus :: Double
 defaultEmptyBonus = 0.01
 
-standardMaxDepth :: (Integral i) => i -> i
+standardMaxDepth :: Int -> Int
 standardMaxDepth n = round (8 + 1.3 * (logBase 2 (fromIntegral n)))
 
-getMinSplit :: (RealFloat f, Integral i) => f -> f -> f -> i -> Shape f -> f -> [(V3 f, i)] -> (V3 f, f, Shape f, Shape f)
+getMinSplit :: Double -> Double -> Double -> Int -> Shape -> Double -> [(V3 Double, Int)] -> (V3 Double, Double, Shape, Shape)
 getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices =
     let bonusFunction = (\index -> if index == 0 || index == numObjects
                                    then emptyBonus -- One AABB is empty
@@ -53,7 +53,7 @@ getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices =
                     then (split, splitCost, leftAABB, rightAABB)
                     else (minSplit, minSplitCost, minLeftAABB, minRightAABB)) (V3 infinity infinity infinity, noSplitCost, aabb, aabb) splitsAndIndices
 
-splitObjects :: (RealFloat f) => (V3 f -> f) -> [Object f] -> [Object f] -> V3 f -> [Object f] -> ([Object f], [Object f])
+splitObjects :: (V3 Double -> Double) -> [Object] -> [Object] -> V3 Double -> [Object] -> ([Object], [Object])
 splitObjects _ leftObjects rightObjects _ [] = (leftObjects, rightObjects)
 splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _) : objects) =
     let split = getCoord splitV
@@ -64,7 +64,7 @@ splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _)
         newRightObjects = if minB >= split || maxB >= split then object : rightObjects else rightObjects
     in splitObjects getCoord newLeftObjects newRightObjects splitV objects
 
-splitBestAxis :: (Ord f, RealFloat f, Integral i) => (V3 f -> f) -> (f -> V3 f) -> i -> i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
+splitBestAxis :: (V3 Double -> Double) -> (Double -> V3 Double) -> Int -> Int -> Int -> Double -> Double -> Double -> Shape -> [Object] -> KDNode
 splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emptyBonus aabb objects =
     let shapeBoundingBoxes = fmap (\(Object shape _ _) -> getShapeBoundingBox shape) objects
         getSplits = (\objects -> foldl' (\accumulator (AABB _ v0 v1) -> (getCoord v0) : (getCoord v1) : accumulator) [] objects)
@@ -80,7 +80,7 @@ splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emp
                 rightNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minRightAABB rightObjects
             in KDBranch minSplit leftNode rightNode
 
-splitNode :: (Ord f, RealFloat f, Integral i) => i -> i -> f -> f -> f -> Shape f -> [Object f] -> KDNode f
+splitNode :: Int -> Int -> Double -> Double -> Double -> Shape -> [Object] -> KDNode
 splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) objects =
     let numObjects = fromIntegral (length objects)
     in if depth > maxDepth || numObjects < 16
@@ -100,12 +100,14 @@ splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) object
                     then splitBestAxis getZ getZSplitVector numObjects depth maxDepth ti tt emptyBonus aabb objects
                     else splitBestAxis getY getYSplitVector numObjects depth maxDepth ti tt emptyBonus aabb objects
 
-splitPlanes :: (RealFloat f) => ([Object f], [Object f]) -> [Object f] -> ([Object f], [Object f])
+splitPlanes :: ([Object], [Object])
+            -> [Object]
+            -> ([Object], [Object])
 splitPlanes (planes, nonPlanes) [] = (planes, nonPlanes)
 splitPlanes (planes, nonPlanes) (object@(Object (Plane _ _) _ _) : objects) = splitPlanes (object : planes, nonPlanes) objects
 splitPlanes (planes, nonPlanes) (object : objects) = splitPlanes (planes, object : nonPlanes) objects
 
-buildKDTree :: (RealFloat f, Integral i) => f -> f -> f -> (i -> i) -> [Object f] -> KDTree f
+buildKDTree :: Double -> Double -> Double -> (Int -> Int) -> [Object] -> KDTree
 buildKDTree ti tt emptyBonus maxDepthFunction [] = KDTree (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) [] (KDLeaf [])
 buildKDTree ti tt emptyBonus maxDepthFunction objects =
     let (planes, nonPlanes) = splitPlanes ([], []) objects

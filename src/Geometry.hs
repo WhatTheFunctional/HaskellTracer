@@ -12,15 +12,15 @@ import Linear
 import Linear.Affine
 import Linear.Matrix
 
-data Shape f = Plane (Point V3 f) (V3 f) -- Point and normal
-             | Sphere (Point V3 f) f -- Center and radius
-             | AABB (M44 f) (V3 f) (V3 f) -- Frame, min, and max
-             | Triangle (Point V3 f) (Point V3 f) (Point V3 f) (V3 f) -- Points, normal
-             | Disk (Point V3 f) (V3 f) f -- Point, normal, and radius
-             | Rectangle (Point V3 f) (V3 f) (V3 f) (V3 f) -- Point, edges, and normal
-             deriving (Show, Eq)
+data Shape = Plane (Point V3 Double) (V3 Double) -- Point and normal
+           | Sphere (Point V3 Double) Double -- Center and radius
+           | AABB (M44 Double) (V3 Double) (V3 Double) -- Frame, min, and max
+           | Triangle (Point V3 Double) (Point V3 Double) (Point V3 Double) (V3 Double) -- Points, normal
+           | Disk (Point V3 Double) (V3 Double) Double -- Point, normal, and radius
+           | Rectangle (Point V3 Double) (V3 Double) (V3 Double) (V3 Double) -- Point, edges, and normal
+           deriving (Show, Eq)
 
-transformShape :: (Fractional f) => M44 f -> M44 f -> Shape f -> Shape f
+transformShape :: M44 Double -> M44 Double -> Shape -> Shape
 
 transformShape worldToView normalMatrix (Plane planePoint planeNormal) =
     let (V4 nx ny nz nw) = normalMatrix !* (vector planeNormal)
@@ -47,7 +47,7 @@ transformShape worldToView normalMatrix (Rectangle p e0 e1 n) =
     in Rectangle (P (normalizePoint (worldToView !* (point (unP p))))) (V3 e0x e0y e0z) (V3 e1x e1y e1z) (V3 nx ny nz)
 
 
-getShapeBoundingBox :: (RealFloat f) => Shape f -> Shape f
+getShapeBoundingBox :: Shape -> Shape
 
 getShapeBoundingBox (Plane _ _) = AABB identity (V3 (-infinity) (-infinity) (-infinity)) (V3 infinity infinity infinity)
 
@@ -67,19 +67,19 @@ getShapeBoundingBox (Rectangle (P p) e0 e1 _) =
         maxBBoxValue = (\x0 x1 x2 x3 -> max (max (max x0 x1) x2) x3) <$> p <*> (p ^+^ e0) <*> (p ^+^ e1) <*> (p ^+^ e0 ^+^ e1)
     in AABB identity minBBoxValue maxBBoxValue
 
-mergeBoundingBoxes :: (Eq f, Ord f) => Shape f -> Shape f -> Maybe (Shape f)
+mergeBoundingBoxes :: Shape -> Shape -> Maybe Shape
 mergeBoundingBoxes (AABB frame0 minBound0 maxBound0) (AABB frame1 minBound1 maxBound1) =
     if frame0 /= frame1
     then Nothing
     else Just (AABB frame0 (min <$> minBound0 <*> minBound1) (max <$> maxBound0 <*> maxBound1))
 
-splitBoundingBox :: (Eq f, RealFloat f) => V3 f -> Shape f -> (Shape f, Shape f)
+splitBoundingBox :: V3 Double -> Shape -> (Shape, Shape)
 splitBoundingBox split (AABB frame minBound maxBound) =
     let newMinBound = (\s minB -> if s /= infinity then s else minB) <$> split <*> minBound
         newMaxBound = (\s maxB -> if s /= infinity then s else maxB) <$> split <*> maxBound
     in (AABB frame minBound newMaxBound, AABB frame newMinBound maxBound)
 
-boundingBoxSurfaceArea :: (Num f) => Shape f -> f
+boundingBoxSurfaceArea :: Shape -> Double
 boundingBoxSurfaceArea (AABB _ minBound maxBound) =
     let (V3 dx dy dz) = maxBound ^-^ minBound
     in ((dx * dy) + (dx * dz) + (dy * dz)) * 2

@@ -11,11 +11,11 @@ import Color
 import Material
 import Shading
 
-data Object f = Object (Shape f) (Material f) (ShadePoint f -> Color f)
+data Object = Object Shape Material (ShadePoint -> Color Double)
 
-instance (Show f) => Show (Object f) where
+instance Show Object where
     show (Object shape material shaderFunction) = "Object (" ++ (show shape) ++ ") (" ++ (show material) ++ ")"
 
-transformObject :: (Fractional f) => M44 f -> M44 f -> Object f -> Object f
+transformObject :: M44 Double -> M44 Double -> Object -> Object
 transformObject viewToWorld normalMatrix (Object shape material shader) = Object (transformShape viewToWorld normalMatrix shape) material shader
 

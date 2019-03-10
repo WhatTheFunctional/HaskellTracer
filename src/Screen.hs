@@ -17,18 +17,38 @@ import Material
 import Shading
 import Sampling
 
-pixelTraceGenerator :: (RealFloat f, RandomGen g, Integral i, Random i, LowDiscrepancySequence s i f)
-                    => (Scene f -> Color f -> Ray f -> s i f -> ((TraceResult f, Ray f), s i f))
-                    -> ((Ray f -> s i f -> ((TraceResult f, Ray f), s i f)) -> [Light f] -> Color f -> (TraceResult f, Ray f) -> s i f -> (Color f, s i f))
-                    -> Scene f
-                    -> [Light f]
-                    -> Color f
-                    -> Camera f
-                    -> (i, i, f, f)
-                    -> (f -> f -> f -> f -> f -> s i f -> ([Ray f], s i f))
-                    -> (i -> s i f)
+pixelTraceGenerator :: (RandomGen g, LowDiscrepancySequence s)
+                    => (Scene
+                        -> Color Double
+                        -> Ray
+                        -> s
+                        -> ((TraceResult, Ray), s))
+                    -> ((Ray
+                         -> s
+                         -> ((TraceResult, Ray), s))
+                         -> [Light]
+                         -> Color Double
+                         -> (TraceResult, Ray)
+                         -> s
+                         -> (Color Double, s))
+                    -> Scene
+                    -> [Light]
+                    -> Color Double
+                    -> Camera
+                    -> (Int, Int, Double, Double)
+                    -> (Double
+                        -> Double
+                        -> Double
+                        -> Double
+                        -> Double
+                        -> s
+                        -> ([Ray], s))
+                    -> (Int -> s)
                     -> g
-                    -> (Int, Int, (Int -> Int -> Color f))
+                    -> (Int, Int, (Int
+                                   -> Int
+                                   -> Color Double))
+
 pixelTraceGenerator traceFunction lightingFunction scene lights bgColor camera (width, height, pixelSize, gamma) samplingFunction mkGen rgen0 =
     let invGamma = 1 / gamma
         w = fromIntegral width
