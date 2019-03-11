@@ -97,8 +97,8 @@ randomSampling :: (LowDiscrepancySequence s)
                -> (Double -> Double -> Double -> Double -> Ray)
                -> Double -> Double -> Double -> Double -> Double -> s -> ([Ray], s)
 randomSampling count lensFunction pixelSize w h x y gen =
-    let halfSampleSize = pixelSize / 2
-        sampleSize = pixelSize
+    let halfSampleSize = pixelSize
+        sampleSize = pixelSize * 2
         samplesIndices = [0..(count - 1)]
     in foldl' (\(accumulator, gen1) c ->
                  let ((rayX, rayY), gen2) = sampleRectangle sampleSize sampleSize gen1

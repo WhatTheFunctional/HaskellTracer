@@ -32,6 +32,7 @@ dependencies:
 - text >= 1.2.3.1
 - split >= 0.2.3.3
 - MissingH >= 1.4.1.0
+- random-shuffle >= 0.0.4
 
 library:
   source-dirs: src

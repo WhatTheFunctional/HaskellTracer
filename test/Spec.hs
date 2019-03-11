@@ -2,6 +2,7 @@ import Control.DeepSeq
 import Data.List
 import Numeric.Limits
 import System.Random
+import System.Random.Shuffle
 import Linear
 import Linear.Affine
 
@@ -186,7 +187,13 @@ rectangleLight0 = RectangleLight (P (V3 300 300 300)) (V3 0 100 0) (V3 0 0 100) 
 -- Bunny light scene
 
 bunnyLight0 :: Light
-bunnyLight0 = RectangleLight (P (V3 300 300 300)) (V3 0 100 0) (V3 0 0 100) (RGB 1 1 1)
+bunnyLight0 = RectangleLight (P (V3 300 300 300)) (V3 0 50 0) (V3 0 0 50) (RGB 1 1 1)
+
+bunnyPlane :: Object
+bunnyPlane = Object (Plane (P (V3 0 50 0)) (V3 0 1 0)) (MatteMaterial (RGB 1 1 1) 1) lambertShader
+
+bunnyCamera :: Camera
+bunnyCamera = cameraLookAt (P (V3 20 300 400)) (V3 0 150 0) (V3 0 1 0)
 
 -- Test functions
 
@@ -384,18 +391,21 @@ testRenderRectangleLightScene =
 testRenderBunnyScene :: [Object] -> IO ()
 testRenderBunnyScene objects =
     do putStrLn "-- Writing bunny scene to bunny_scene.png"
+       let gen0 = mkStdGen 813580
+           (cache, count) = mkHaltonCache 1048576 2
+           cache' = shuffle' cache 1048576 gen0
        writeParallelPNG "bunny_scene.png"
                 (pixelTraceGenerator
                  traceRays
                  traceOneLight
-                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (randomSpheresPlane : objects)))
+                 (KDScene (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (bunnyPlane : objects)))
                  [bunnyLight0]
                  testSkyBlueRGB
-                 randomSpheresCamera
-                 (200, 200, 2.0, 2.2)
-                 (randomSampling 1 (perspectiveLens (pi / 3)))
-                 (mkHaltonLDS (mkHaltonCache 1048576 2))
-                 (mkStdGen 813580))
+                 bunnyCamera
+                 (640, 480, 1.0, 2.2)
+                 (randomSampling 16 (perspectiveLens (pi / 3)))
+                 (mkHaltonLDS (cache', count))
+                 gen0)
 
 
 runAll :: IO ()
