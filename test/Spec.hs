@@ -402,8 +402,8 @@ testRenderBunnyScene objects =
                  [bunnyLight0]
                  testSkyBlueRGB
                  bunnyCamera
-                 (640, 480, 1.0, 2.2)
-                 (randomSampling 16 (perspectiveLens (pi / 3)))
+                 (200, 200, 2.0, 2.2)
+                 (randomSampling 8 (perspectiveLens (pi / 3)))
                  (mkHaltonLDS (cache', count))
                  gen0)
 
