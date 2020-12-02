@@ -1,6 +1,7 @@
 import Control.DeepSeq
 import Data.List
 import Numeric.Limits
+import System.IO
 import System.Random
 import System.Random.Shuffle
 import Linear
@@ -407,6 +408,44 @@ testRenderBunnyScene objects =
                  (mkHaltonLDS (cache', count))
                  gen0)
 
+printBunnyHeader :: Handle -> Int -> Int -> IO ()
+printBunnyHeader handle numVertices numIndices = do
+    hPutStrLn handle "ply"
+    hPutStrLn handle "format ascii 1.0"
+    hPutStrLn handle ("element vertex " ++ (show numVertices))
+    hPutStrLn handle "property float x"
+    hPutStrLn handle "property float y"
+    hPutStrLn handle "property float z"
+    hPutStrLn handle ("element edge " ++ (show (numIndices `div` 2)))
+    hPutStrLn handle "property int vertex1"
+    hPutStrLn handle "property int vertex2"
+    hPutStrLn handle "end_header"
+
+printBunnyVertices :: Handle -> [V3 Double] -> IO ()
+printBunnyVertices handle [] = return ()
+printBunnyVertices handle ((V3 x y z) : vertices) = do
+    hPutStrLn handle ((show x) ++ " " ++ (show y) ++ " " ++ (show z))
+    printBunnyVertices handle vertices
+
+printBunnyIndices :: Handle -> [Int] -> IO ()
+printBunnyIndices handle [] = return ()
+printBunnyIndices handle (e0 : e1 : indices) = do
+    hPutStrLn handle ((show e0) ++ " " ++ (show e1))
+    printBunnyIndices handle indices
+
+testPrintBunnyAABB :: [Object] -> IO ()
+testPrintBunnyAABB objects =
+    do putStrLn "-- Printing bunny AABB to bunny_aabb.ply"
+       let gen0 = mkStdGen 813580
+           (cache, count) = mkHaltonCache 1048576 2
+           cache' = shuffle' cache 1048576 gen0
+           bunnyKDTree = (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (bunnyPlane : objects))
+           (vertices, indices) = treeToMesh bunnyKDTree
+       withFile "bunny_aabb.ply" WriteMode (\handle -> do
+           printBunnyHeader handle (length vertices) (length indices)
+           printBunnyVertices handle (reverse vertices)
+           printBunnyIndices handle (reverse indices)
+           )
 
 runAll :: IO ()
 runAll = do putStrLn "Running tests"
@@ -536,6 +575,24 @@ runJustRenderBunny =
                   putStrLn $ ("Mesh size: " ++ (show $ length objects))
                   testRenderBunnyScene objects
 
+runPrintBunnyAABB :: IO ()
+runPrintBunnyAABB =
+    do let s = 1
+           transform = (V4 (V4 s 0 0 0)
+                           (V4 0 s 0 0)
+                           (V4 0 0 s 0)
+                           (V4 0 0 0 1))
+       mesh <- loadMeshPLY transform
+                           (PlasticMaterial (RGB 0.2 0.2 0.5) 1 (RGB 0.4 0.4 0.8) 1 2.5)
+                           lambertShader
+                           "bun_zipper_res2.ply"
+       case mesh of
+           Nothing -> return ()
+           Just (plyHeader, objects) ->
+               do putStrLn $ show $ plyHeader
+                  putStrLn $ ("Mesh size: " ++ (show $ length objects))
+                  testPrintBunnyAABB objects
+
 main :: IO ()
 --main = runAll
 --main = runJustRandomSpheres
@@ -543,4 +600,5 @@ main :: IO ()
 --main = runJustDiskLight
 --main = runJustSphereLight
 --main = runJustRectangleLight
-main = runJustRenderBunny
+--main = runJustRenderBunny
+main = runPrintBunnyAABB

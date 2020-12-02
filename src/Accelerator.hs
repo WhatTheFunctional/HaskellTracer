@@ -6,6 +6,8 @@ module Accelerator
     , defaultEmptyBonus
     , standardMaxDepth
     , buildKDTree
+    , toMesh
+    , treeToMesh
     ) where
 
 import Data.List
@@ -128,3 +130,59 @@ buildKDTree ti tt emptyBonus maxDepthFunction objects =
                                    Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
     in KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
 
+toMesh :: KDNode -> Shape -> (Int, [V3 Double], [Int]) -> (Int, [V3 Double], [Int])
+toMesh (KDLeaf objects) aabb (currentIndex, vertices, indices) = (currentIndex, vertices, indices)
+toMesh (KDBranch split left right) aabb (currentIndex, vertices, indices) =
+    let (lAABB@(AABB leftFrame (V3 lminX lminY lminZ) (V3 lmaxX lmaxY lmaxZ)), rAABB@(AABB rightFrame (V3 rminX rminY rminZ) (V3 rmaxX rmaxY rmaxZ))) = splitBoundingBox split aabb
+        (leftIndex, leftVertices, leftIndices) = toMesh left lAABB
+            (
+                currentIndex + 8,
+                (V3 lminX lminY lminZ) :
+                (V3 lmaxX lminY lminZ) :
+                (V3 lminX lmaxY lminZ) :
+                (V3 lmaxX lmaxY lminZ) :
+                (V3 lminX lminY lmaxZ) :
+                (V3 lmaxX lminY lmaxZ) :
+                (V3 lminX lmaxY lmaxZ) :
+                (V3 lmaxX lmaxY lmaxZ) : vertices,
+                (currentIndex + 0) : (currentIndex + 1) :
+                (currentIndex + 2) : (currentIndex + 3) :
+                (currentIndex + 4) : (currentIndex + 5) :
+                (currentIndex + 6) : (currentIndex + 7) :
+                (currentIndex + 0) : (currentIndex + 2) :
+                (currentIndex + 1) : (currentIndex + 3) :
+                (currentIndex + 4) : (currentIndex + 6) :
+                (currentIndex + 5) : (currentIndex + 7) :
+                (currentIndex + 0) : (currentIndex + 4) :
+                (currentIndex + 1) : (currentIndex + 5) :
+                (currentIndex + 2) : (currentIndex + 6) :
+                (currentIndex + 3) : (currentIndex + 7) : indices)
+        (rightIndex, rightVertices, rightIndices) = toMesh right rAABB
+            (
+                leftIndex + 8,
+                (V3 rminX rminY rminZ) :
+                (V3 rmaxX rminY rminZ) :
+                (V3 rminX rmaxY rminZ) :
+                (V3 rmaxX rmaxY rminZ) :
+                (V3 rminX rminY rmaxZ) :
+                (V3 rmaxX rminY rmaxZ) :
+                (V3 rminX rmaxY rmaxZ) :
+                (V3 rmaxX rmaxY rmaxZ) : leftVertices,
+                (leftIndex + 0) : (leftIndex + 1) :
+                (leftIndex + 2) : (leftIndex + 3) :
+                (leftIndex + 4) : (leftIndex + 5) :
+                (leftIndex + 6) : (leftIndex + 7) :
+                (leftIndex + 0) : (leftIndex + 2) :
+                (leftIndex + 1) : (leftIndex + 3) :
+                (leftIndex + 4) : (leftIndex + 6) :
+                (leftIndex + 5) : (leftIndex + 7) :
+                (leftIndex + 0) : (leftIndex + 4) :
+                (leftIndex + 1) : (leftIndex + 5) :
+                (leftIndex + 2) : (leftIndex + 6) :
+                (leftIndex + 3) : (leftIndex + 7) : leftIndices)
+    in (rightIndex, rightVertices, rightIndices)
+
+treeToMesh :: KDTree -> ([V3 Double], [Int])
+treeToMesh (KDTree aabb objects node) =
+    let (currentIndex, vertices, indices) = toMesh node aabb (0, [], [])
+    in (vertices, indices)
