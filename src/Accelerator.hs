@@ -24,6 +24,9 @@ data KDNode = KDLeaf [Object] -- Leaf objects
 data KDTree = KDTree (Shape) [Object] (KDNode) -- AABB, planes and root node
               deriving (Show)
 
+data IntervalEdge = LeftEdge | RightEdge deriving (Show) -- Label for the edge of an interval
+
+
 defaultTi :: Double
 defaultTi = 80
 
@@ -36,18 +39,18 @@ defaultEmptyBonus = 0.01
 standardMaxDepth :: Int -> Int
 standardMaxDepth n = round (8 + 1.3 * (logBase 2 (fromIntegral n)))
 
-getMinSplit :: Double -> Double -> Double -> Int -> Shape -> Double -> [(V3 Double, Int)] -> (V3 Double, Double, Shape, Shape)
+getMinSplit :: Double -> Double -> Double -> Int -> Shape -> Double -> [(V3 Double, (Int, Int))] -> (V3 Double, Double, Shape, Shape)
 getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices =
-    let bonusFunction = (\index -> if index == 0 || index == numObjects
+    let bonusFunction = (\count -> if count == 0 || count == numObjects
                                    then emptyBonus -- One AABB is empty
                                    else 0)
         invAABBSurfaceArea = 1 / aabbSurfaceArea
         noSplitCost = ti * (fromIntegral numObjects)
-    in foldl' (\(minSplit, minSplitCost, minLeftAABB, minRightAABB) (split, index) ->
+    in foldl' (\(minSplit, minSplitCost, minLeftAABB, minRightAABB) (split, (leftCount, rightCount)) ->
                  let (leftAABB, rightAABB) = splitBoundingBox split aabb
-                     bonusFactor = (1 - (bonusFunction index))
-                     leftFactor = (fromIntegral index) * (boundingBoxSurfaceArea leftAABB) * invAABBSurfaceArea
-                     rightFactor = (fromIntegral (numObjects - index)) * (boundingBoxSurfaceArea rightAABB) * invAABBSurfaceArea
+                     bonusFactor = (1 - (bonusFunction leftCount) - (bonusFunction rightCount))
+                     leftFactor = (fromIntegral leftCount) * (boundingBoxSurfaceArea leftAABB) * invAABBSurfaceArea
+                     rightFactor = (fromIntegral rightCount) * (boundingBoxSurfaceArea rightAABB) * invAABBSurfaceArea
                      splitCost = tt + ti * bonusFactor * (leftFactor + rightFactor)
                  in if splitCost < minSplitCost
                     then (split, splitCost, leftAABB, rightAABB)
@@ -64,13 +67,20 @@ splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _)
         newRightObjects = if minB >= split || maxB >= split then object : rightObjects else rightObjects
     in splitObjects getCoord newLeftObjects newRightObjects splitV objects
 
-splitBestAxis :: (V3 Double -> Double) -> (Double -> V3 Double) -> Int -> Int -> Int -> Double -> Double -> Double -> Shape -> [Object] -> KDNode
+computeSplitIndices :: (Int, Int) -> [(Double, IntervalEdge)] -> [(Int, Int)] -> [(Int, Int)]
+computeSplitIndices _ [] counts = counts
+computeSplitIndices (leftCount, rightCount) ((_, LeftEdge) : splits) counts = computeSplitIndices (leftCount + 1, rightCount) splits ((leftCount + 1, rightCount) : counts)
+computeSplitIndices (leftCount, rightCount) ((_, RightEdge) : splits) counts = computeSplitIndices (leftCount, rightCount - 1) splits ((leftCount, rightCount - 1) : counts)
+
+getSplits :: (V3 Double -> Double) -> [Shape] -> [(Double, IntervalEdge)]
+getSplits getCoord objects = foldl' (\accumulator (AABB _ v0 v1) -> (getCoord v0, LeftEdge) : (getCoord v1, RightEdge) : accumulator) [] objects
+
+splitBestAxis :: (V3 Double -> Double) -> ((Double, IntervalEdge) -> V3 Double) -> Int -> Int -> Int -> Double -> Double -> Double -> Shape -> [Object] -> KDNode
 splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emptyBonus aabb objects =
     let shapeBoundingBoxes = fmap (\(Object shape _ _) -> getShapeBoundingBox shape) objects
-        getSplits = (\objects -> foldl' (\accumulator (AABB _ v0 v1) -> (getCoord v0) : (getCoord v1) : accumulator) [] objects)
-        splits = fmap getSplitVector (sort (getSplits shapeBoundingBoxes))
-        splitIndices = foldl' (\accumulator index -> index : (index + 1) : accumulator) [] [0..(numObjects - 1)]
-        splitsAndIndices = zip splits splitIndices
+        splits = sortBy (\(lhs, lhsEdge) (rhs, rhsEdge) -> compare lhs rhs) (getSplits getCoord shapeBoundingBoxes) -- Sort splits by coordinate
+        splitIndices = reverse $ computeSplitIndices (0, numObjects) splits []
+        splitsAndIndices = zip (fmap getSplitVector splits) splitIndices
         aabbSurfaceArea = boundingBoxSurfaceArea aabb
         (minSplit, minSplitCost, minLeftAABB, minRightAABB) = getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices
     in if minSplit == (V3 infinity infinity infinity)
@@ -88,9 +98,9 @@ splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) object
        else let getX = (\(V3 x _ _) -> x)
                 getY = (\(V3 _ y _) -> y)
                 getZ = (\(V3 _ _ z) -> z)
-                getXSplitVector = (\split -> V3 split infinity infinity)
-                getYSplitVector = (\split -> V3 infinity split infinity)
-                getZSplitVector = (\split -> V3 infinity infinity split)
+                getXSplitVector = (\(split, _) -> V3 split infinity infinity)
+                getYSplitVector = (\(split, _) -> V3 infinity split infinity)
+                getZSplitVector = (\(split, _) -> V3 infinity infinity split)
                 (V3 dx dy dz) = maxBound ^-^ minBound
             in if dx > dy
                then if dz > dx
