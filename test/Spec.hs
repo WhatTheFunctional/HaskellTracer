@@ -67,13 +67,17 @@ testKDTree = buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth 
 
 testRandomSpheresKDTree :: KDTree
 testRandomSpheresKDTree = 
-       let (spheres, g) = randomSpheres 32 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
-       in buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres
+   let (spheres, g) = randomSpheres 32 (V3 (-300) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+   in buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth spheres
 
 testDepthFunction :: Int
 testDepthFunction =
-       let (spheres, g) = randomSpheres 1000 (V3 (-(300)) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
-       in standardMaxDepth (fromIntegral (length spheres))
+   let (spheres, g) = randomSpheres 1000 (V3 (-(300)) (-100) (-100)) (V3 300 300 100) 5 30 (mkStdGen 588025)
+   in standardMaxDepth (fromIntegral (length spheres))
+
+testSplitBoundingBox :: (Shape, Shape)
+testSplitBoundingBox =
+   splitBoundingBox (V3 infinity 5.0 infinity) (AABB identity (V3 0.0 0.0 0.0) (V3 10.0 10.0 10.0))
 
 -- Test scene
 
@@ -440,6 +444,7 @@ testPrintBunnyAABB objects =
            (cache, count) = mkHaltonCache 1048576 2
            cache' = shuffle' cache 1048576 gen0
            bunnyKDTree = (buildKDTree defaultTi defaultTt defaultEmptyBonus standardMaxDepth (bunnyPlane : objects))
+           --(vertices, indices) = treeToLeafMesh bunnyKDTree
            (vertices, indices) = treeToMesh bunnyKDTree
        withFile "bunny_aabb.ply" WriteMode (\handle -> do
            printBunnyHeader handle (length vertices) (length indices)
@@ -573,6 +578,7 @@ runJustRenderBunny =
            Just (plyHeader, objects) ->
                do putStrLn $ show $ plyHeader
                   putStrLn $ ("Mesh size: " ++ (show $ length objects))
+                  hFlush stdout
                   testRenderBunnyScene objects
 
 runPrintBunnyAABB :: IO ()
@@ -591,6 +597,9 @@ runPrintBunnyAABB =
            Just (plyHeader, objects) ->
                do putStrLn $ show $ plyHeader
                   putStrLn $ ("Mesh size: " ++ (show $ length objects))
+                  let (left, right) = testSplitBoundingBox
+                  putStrLn $ show (left, right)
+                  hFlush stdout
                   testPrintBunnyAABB objects
 
 main :: IO ()
@@ -600,5 +609,5 @@ main :: IO ()
 --main = runJustDiskLight
 --main = runJustSphereLight
 --main = runJustRectangleLight
---main = runJustRenderBunny
-main = runPrintBunnyAABB
+main = runJustRenderBunny
+--main = runPrintBunnyAABB

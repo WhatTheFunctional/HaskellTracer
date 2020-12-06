@@ -5,9 +5,12 @@ module Accelerator
     , defaultTt
     , defaultEmptyBonus
     , standardMaxDepth
+    , getNodeBoundingBox 
+    , mergeObjectBoundingBoxes 
     , buildKDTree
     , toMesh
     , treeToMesh
+    , treeToLeafMesh
     ) where
 
 import Data.List
@@ -19,8 +22,8 @@ import Linear.Affine
 import Geometry
 import Object
 
-data KDNode = KDLeaf [Object] -- Leaf objects
-              | KDBranch (V3 Double) (KDNode) (KDNode) -- Split and child-nodes
+data KDNode = KDLeaf Shape [Object] -- Leaf objects
+              | KDBranch (V3 Double) Shape (KDNode) (KDNode) -- Split, AABB and child-nodes
               deriving (Show)
 
 data KDTree = KDTree (Shape) [Object] (KDNode) -- AABB, planes and root node
@@ -41,22 +44,34 @@ defaultEmptyBonus = 0.01
 standardMaxDepth :: Int -> Int
 standardMaxDepth n = round (8 + 1.3 * (logBase 2 (fromIntegral n)))
 
-getMinSplit :: Double -> Double -> Double -> Int -> Shape -> Double -> [(V3 Double, (Int, Int))] -> (V3 Double, Double, Shape, Shape)
+getNodeBoundingBox :: KDNode -> Shape
+getNodeBoundingBox (KDLeaf aabb _) = aabb
+getNodeBoundingBox (KDBranch _ aabb _ _) = aabb
+
+mergeObjectBoundingBoxes :: [Object] -> Shape
+mergeObjectBoundingBoxes nonPlanes =
+    foldl' (\accumulatorAABB aabb -> 
+       case mergeBoundingBoxes aabb accumulatorAABB of
+           Nothing -> accumulatorAABB
+           Just mergedAABB -> mergedAABB) infinityAABB (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
+
+
+getMinSplit :: Double -> Double -> Double -> Int -> Shape -> Double -> [(V3 Double, (Int, Int))] -> (V3 Double, Double)
 getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices =
     let bonusFunction = (\count -> if count == 0 || count == numObjects
                                    then emptyBonus -- One AABB is empty
                                    else 0)
         invAABBSurfaceArea = 1 / aabbSurfaceArea
         noSplitCost = ti * (fromIntegral numObjects)
-    in foldl' (\(minSplit, minSplitCost, minLeftAABB, minRightAABB) (split, (leftCount, rightCount)) ->
+    in foldl' (\(minSplit, minSplitCost) (split, (leftCount, rightCount)) ->
                  let (leftAABB, rightAABB) = splitBoundingBox split aabb
                      bonusFactor = (1 - (bonusFunction leftCount) - (bonusFunction rightCount))
                      leftFactor = (fromIntegral leftCount) * (boundingBoxSurfaceArea leftAABB) * invAABBSurfaceArea
                      rightFactor = (fromIntegral rightCount) * (boundingBoxSurfaceArea rightAABB) * invAABBSurfaceArea
                      splitCost = tt + ti * bonusFactor * (leftFactor + rightFactor)
                  in if splitCost < minSplitCost
-                    then (split, splitCost, leftAABB, rightAABB)
-                    else (minSplit, minSplitCost, minLeftAABB, minRightAABB)) (V3 infinity infinity infinity, noSplitCost, aabb, aabb) splitsAndIndices
+                    then (split, splitCost)
+                    else (minSplit, minSplitCost)) (V3 infinity infinity infinity, noSplitCost) splitsAndIndices
 
 splitObjects :: (V3 Double -> Double) -> [Object] -> [Object] -> V3 Double -> [Object] -> ([Object], [Object])
 splitObjects _ leftObjects rightObjects _ [] = (leftObjects, rightObjects)
@@ -65,8 +80,8 @@ splitObjects getCoord leftObjects rightObjects splitV (object@(Object shape _ _)
         AABB _ minV maxV = getShapeBoundingBox shape
         minB = getCoord minV
         maxB = getCoord maxV
-        newLeftObjects = if minB <= split || maxB <= split then object : leftObjects else leftObjects
-        newRightObjects = if minB >= split || maxB >= split then object : rightObjects else rightObjects
+        newLeftObjects = if maxB <= split || (minB <= split && maxB >= split) then object : leftObjects else leftObjects
+        newRightObjects = if minB >= split || (minB <= split && maxB >= split) then object : rightObjects else rightObjects
     in splitObjects getCoord newLeftObjects newRightObjects splitV objects
 
 computeSplitIndices :: (Int, Int) -> [(Double, IntervalEdge)] -> [(Int, Int)] -> [(Int, Int)]
@@ -84,19 +99,21 @@ splitBestAxis getCoord getSplitVector numObjects currentDepth maxDepth ti tt emp
         splitIndices = reverse $ computeSplitIndices (0, numObjects) splits []
         splitsAndIndices = zip (fmap getSplitVector splits) splitIndices
         aabbSurfaceArea = boundingBoxSurfaceArea aabb
-        (minSplit, minSplitCost, minLeftAABB, minRightAABB) = getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices
+        (minSplit, minSplitCost) = getMinSplit ti tt emptyBonus numObjects aabb aabbSurfaceArea splitsAndIndices
     in if minSplit == (V3 infinity infinity infinity)
-       then KDLeaf objects
+       then KDLeaf (mergeObjectBoundingBoxes objects) objects
        else let (leftObjects, rightObjects) = splitObjects getCoord [] [] minSplit objects
+                minLeftAABB = mergeObjectBoundingBoxes leftObjects
+                minRightAABB = mergeObjectBoundingBoxes rightObjects
                 leftNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minLeftAABB leftObjects
                 rightNode = splitNode (currentDepth + 1) maxDepth ti tt emptyBonus minRightAABB rightObjects
-            in KDBranch minSplit leftNode rightNode
+            in KDBranch minSplit aabb leftNode rightNode
 
 splitNode :: Int -> Int -> Double -> Double -> Double -> Shape -> [Object] -> KDNode
 splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) objects =
     let numObjects = fromIntegral (length objects)
-    in if depth > maxDepth || numObjects < 16
-       then KDLeaf objects
+    in if depth > maxDepth || numObjects <= 16
+       then KDLeaf (mergeObjectBoundingBoxes objects) objects
        else let getX = (\(V3 x _ _) -> x)
                 getY = (\(V3 _ y _) -> y)
                 getZ = (\(V3 _ _ z) -> z)
@@ -112,29 +129,27 @@ splitNode depth maxDepth ti tt emptyBonus aabb@(AABB _ minBound maxBound) object
                     then splitBestAxis getZ getZSplitVector numObjects depth maxDepth ti tt emptyBonus aabb objects
                     else splitBestAxis getY getYSplitVector numObjects depth maxDepth ti tt emptyBonus aabb objects
 
-splitPlanes :: ([Object], [Object])
+filterOutPlanes :: ([Object], [Object])
             -> [Object]
             -> ([Object], [Object])
-splitPlanes (planes, nonPlanes) [] = (planes, nonPlanes)
-splitPlanes (planes, nonPlanes) (object@(Object (Plane _ _) _ _) : objects) = splitPlanes (object : planes, nonPlanes) objects
-splitPlanes (planes, nonPlanes) (object : objects) = splitPlanes (planes, object : nonPlanes) objects
+filterOutPlanes (planes, nonPlanes) [] = (planes, nonPlanes)
+filterOutPlanes (planes, nonPlanes) (object@(Object (Plane _ _) _ _) : objects) = filterOutPlanes (object : planes, nonPlanes) objects
+filterOutPlanes (planes, nonPlanes) (object : objects) = filterOutPlanes (planes, object : nonPlanes) objects
 
 buildKDTree :: Double -> Double -> Double -> (Int -> Int) -> [Object] -> KDTree
-buildKDTree ti tt emptyBonus maxDepthFunction [] = KDTree (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) [] (KDLeaf [])
 buildKDTree ti tt emptyBonus maxDepthFunction objects =
-    let (planes, nonPlanes) = splitPlanes ([], []) objects
+    let (planes, nonPlanes) = filterOutPlanes ([], []) objects
         maxDepth = maxDepthFunction (fromIntegral (length nonPlanes))
-        treeAABB = foldl' (\accumulatorAABB aabb -> 
-                               case mergeBoundingBoxes aabb accumulatorAABB of
-                                   Nothing -> accumulatorAABB
-                                   Just mergedAABB -> mergedAABB) (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity))) (fmap (\(Object shape _ _) -> getShapeBoundingBox shape) nonPlanes)
-    in KDTree treeAABB planes (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
+        treeAABB = mergeObjectBoundingBoxes nonPlanes
+        rootNode = (splitNode (fromIntegral 0) maxDepth ti tt emptyBonus treeAABB nonPlanes)
+    in KDTree treeAABB planes rootNode
 
-toMesh :: KDNode -> Shape -> (Int, [V3 Double], [Int]) -> (Int, [V3 Double], [Int])
-toMesh (KDLeaf objects) aabb (currentIndex, vertices, indices) = (currentIndex, vertices, indices)
-toMesh (KDBranch split left right) aabb (currentIndex, vertices, indices) =
-    let (lAABB@(AABB leftFrame (V3 lminX lminY lminZ) (V3 lmaxX lmaxY lmaxZ)), rAABB@(AABB rightFrame (V3 rminX rminY rminZ) (V3 rmaxX rmaxY rmaxZ))) = splitBoundingBox split aabb
-        (leftIndex, leftVertices, leftIndices) = toMesh left lAABB
+toMesh :: KDNode -> (Int, [V3 Double], [Int]) -> (Int, [V3 Double], [Int])
+toMesh (KDLeaf _ objects) (currentIndex, vertices, indices) = (currentIndex, vertices, indices)
+toMesh (KDBranch split _ left right) (currentIndex, vertices, indices) =
+    let lAABB@(AABB leftFrame (V3 lminX lminY lminZ) (V3 lmaxX lmaxY lmaxZ)) = getNodeBoundingBox left
+        rAABB@(AABB rightFrame (V3 rminX rminY rminZ) (V3 rmaxX rmaxY rmaxZ)) = getNodeBoundingBox right
+        (leftIndex, leftVertices, leftIndices) = toMesh left
             (
                 currentIndex + 8,
                 (V3 lminX lminY lminZ) :
@@ -157,7 +172,7 @@ toMesh (KDBranch split left right) aabb (currentIndex, vertices, indices) =
                 (currentIndex + 1) : (currentIndex + 5) :
                 (currentIndex + 2) : (currentIndex + 6) :
                 (currentIndex + 3) : (currentIndex + 7) : indices)
-        (rightIndex, rightVertices, rightIndices) = toMesh right rAABB
+        (rightIndex, rightVertices, rightIndices) = toMesh right
             (
                 leftIndex + 8,
                 (V3 rminX rminY rminZ) :
@@ -182,7 +197,42 @@ toMesh (KDBranch split left right) aabb (currentIndex, vertices, indices) =
                 (leftIndex + 3) : (leftIndex + 7) : leftIndices)
     in (rightIndex, rightVertices, rightIndices)
 
+toLeafMesh :: KDNode -> (Int, [V3 Double], [Int]) -> (Int, [V3 Double], [Int])
+toLeafMesh (KDLeaf (AABB frame (V3 minX minY minZ) (V3 maxX maxY maxZ)) objects) (currentIndex, vertices, indices) =
+    (
+        currentIndex + 8,
+        (V3 minX minY minZ) :
+        (V3 maxX minY minZ) :
+        (V3 minX maxY minZ) :
+        (V3 maxX maxY minZ) :
+        (V3 minX minY maxZ) :
+        (V3 maxX minY maxZ) :
+        (V3 minX maxY maxZ) :
+        (V3 maxX maxY maxZ) : vertices,
+        (currentIndex + 0) : (currentIndex + 1) :
+        (currentIndex + 2) : (currentIndex + 3) :
+        (currentIndex + 4) : (currentIndex + 5) :
+        (currentIndex + 6) : (currentIndex + 7) :
+        (currentIndex + 0) : (currentIndex + 2) :
+        (currentIndex + 1) : (currentIndex + 3) :
+        (currentIndex + 4) : (currentIndex + 6) :
+        (currentIndex + 5) : (currentIndex + 7) :
+        (currentIndex + 0) : (currentIndex + 4) :
+        (currentIndex + 1) : (currentIndex + 5) :
+        (currentIndex + 2) : (currentIndex + 6) :
+        (currentIndex + 3) : (currentIndex + 7) : indices)
+toLeafMesh (KDBranch split aabb left right) (currentIndex, vertices, indices) =
+    let (lAABB@(AABB leftFrame (V3 lminX lminY lminZ) (V3 lmaxX lmaxY lmaxZ)), rAABB@(AABB rightFrame (V3 rminX rminY rminZ) (V3 rmaxX rmaxY rmaxZ))) = splitBoundingBox split aabb
+        (leftIndex, leftVertices, leftIndices) = toLeafMesh left (currentIndex, vertices, indices)
+        (rightIndex, rightVertices, rightIndices) = toLeafMesh right (leftIndex, leftVertices, leftIndices)
+    in (rightIndex, rightVertices, rightIndices)
+
 treeToMesh :: KDTree -> ([V3 Double], [Int])
 treeToMesh (KDTree aabb objects node) =
-    let (currentIndex, vertices, indices) = toMesh node aabb (0, [], [])
+    let (currentIndex, vertices, indices) = toMesh node (0, [], [])
+    in (vertices, indices)
+
+treeToLeafMesh :: KDTree -> ([V3 Double], [Int])
+treeToLeafMesh (KDTree aabb objects node) =
+    let (currentIndex, vertices, indices) = toLeafMesh node (0, [], [])
     in (vertices, indices)

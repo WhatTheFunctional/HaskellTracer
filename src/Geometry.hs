@@ -1,5 +1,6 @@
 module Geometry
     ( Shape (..)
+    , infinityAABB
     , transformShape
     , getShapeBoundingBox
     , mergeBoundingBoxes
@@ -19,6 +20,9 @@ data Shape = Plane (Point V3 Double) (V3 Double) -- Point and normal
            | Disk (Point V3 Double) (V3 Double) Double -- Point, normal, and radius
            | Rectangle (Point V3 Double) (V3 Double) (V3 Double) (V3 Double) -- Point, edges, and normal
            deriving (Show, Eq)
+
+infinityAABB :: Shape
+infinityAABB = (AABB identity (V3 infinity infinity infinity) (V3 (-infinity) (-infinity) (-infinity)))
 
 transformShape :: M44 Double -> M44 Double -> Shape -> Shape
 

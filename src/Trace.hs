@@ -56,7 +56,7 @@ traceRays (KDScene (KDTree aabb planes node)) bgColor ray gen =
     in case rayIntersection ray aabb of
            Nothing -> ((planeTraceResult, planeRay), gen1)
            Just objectIntersection ->
-               let ((kdTraceResult@(TraceResult (Intersection {tMin = kdTMin}) _ _), kdRay), gen2) = traceKDNode node aabb bgColor ray gen1
+               let ((kdTraceResult@(TraceResult (Intersection {tMin = kdTMin}) _ _), kdRay), gen2) = traceKDNode node bgColor ray gen1
                in if kdTMin < planeTMin
                   then ((kdTraceResult, kdRay), gen2)
                   else ((planeTraceResult, planeRay), gen2)
@@ -65,16 +65,16 @@ traceRays (KDScene (KDTree aabb planes node)) bgColor ray gen =
 
 traceKDNode :: (LowDiscrepancySequence s)
             => KDNode
-            -> Shape
             -> Color Double
             -> Ray
             -> s
             -> ((TraceResult, Ray), s)
 
-traceKDNode (KDLeaf objects) _ bgColor ray gen = traceRays (ListScene objects) bgColor ray gen
+traceKDNode (KDLeaf _ objects) bgColor ray gen = traceRays (ListScene objects) bgColor ray gen
 
-traceKDNode (KDBranch split left right) aabb bgColor ray gen =
-    let (leftAABB, rightAABB) = splitBoundingBox split aabb
+traceKDNode (KDBranch split _ left right) bgColor ray gen =
+    let leftAABB = getNodeBoundingBox left
+        rightAABB = getNodeBoundingBox right
         tLeft = case rayIntersection ray leftAABB of
                     Nothing -> infinity
                     Just objectIntersection@(Intersection {tMin = leftTMin}) -> leftTMin
@@ -83,29 +83,30 @@ traceKDNode (KDBranch split left right) aabb bgColor ray gen =
                     Just objectIntersection@(Intersection {tMin = rightTMin}) -> rightTMin
         leftIntersection = tLeft /= infinity
         rightIntersection = tRight /= infinity
-    in if leftIntersection && rightIntersection
-       then if tLeft <= tRight
-            then let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen1) = traceKDNode left leftAABB bgColor ray gen
+    in leftIntersection `seq` rightIntersection `seq` if leftIntersection && rightIntersection
+       then tLeft `seq` tRight `seq`
+            if tLeft <= tRight
+            then let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen1) = traceKDNode left bgColor ray gen
                  in if leftTMin /= infinity
                     then ((leftTraceResult, leftRay), gen1)
-                    else let ((rightTraceResult@(TraceResult (Intersection {tMin = rightTMin}) _ _), rightRay), gen2) = traceKDNode right rightAABB bgColor ray gen1
+                    else let ((rightTraceResult@(TraceResult (Intersection {tMin = rightTMin}) _ _), rightRay), gen2) = traceKDNode right bgColor ray gen1
                          in if rightTMin /= infinity
                             then ((rightTraceResult, rightRay), gen2)
                             else ((emptyTraceResult bgColor, ray), gen2)
-            else let ((rightTraceResult@(TraceResult (Intersection {tMin = rightTMin}) _ _), rightRay), gen1) = traceKDNode right rightAABB bgColor ray gen
+            else let ((rightTraceResult@(TraceResult (Intersection {tMin = rightTMin}) _ _), rightRay), gen1) = traceKDNode right bgColor ray gen
                  in if rightTMin /= infinity
                     then ((rightTraceResult, rightRay), gen1)
-                    else let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen2) = traceKDNode left leftAABB bgColor ray gen1
+                    else let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen2) = traceKDNode left bgColor ray gen1
                          in if leftTMin /= infinity
                             then ((leftTraceResult, leftRay), gen2)
                             else ((emptyTraceResult bgColor, ray), gen2)
         else if leftIntersection
-             then let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen1) = traceKDNode left leftAABB bgColor ray gen
+             then let ((leftTraceResult@(TraceResult (Intersection {tMin = leftTMin}) _ _), leftRay), gen1) = traceKDNode left bgColor ray gen
                   in if leftTMin /= infinity
                      then ((leftTraceResult, leftRay), gen1)
                      else ((emptyTraceResult bgColor, ray), gen1)
              else if rightIntersection
-                  then let ((rightTraceResult@(TraceResult (Intersection {tMin = rightTMin}) _ _), rightRay), gen1) = traceKDNode right rightAABB bgColor ray gen
+                  then let ((rightTraceResult@(TraceResult (Intersection {tMin = rightTMin}) _ _), rightRay), gen1) = traceKDNode right bgColor ray gen
                        in if rightTMin /= infinity
                           then ((rightTraceResult, rightRay), gen1)
                           else ((emptyTraceResult bgColor, ray), gen1)

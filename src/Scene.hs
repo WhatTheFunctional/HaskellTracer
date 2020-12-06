@@ -17,8 +17,8 @@ data Scene = ListScene [Object]
 -- KD node transformation
 
 transformKDNode :: M44 Double -> M44 Double -> KDNode -> KDNode
-transformKDNode worldToView normalMatrix (KDLeaf objects) = KDLeaf (fmap (transformObject worldToView normalMatrix) objects)
-transformKDNode worldToView normalMatrix (KDBranch v left right) = KDBranch v (transformKDNode worldToView normalMatrix left) (transformKDNode worldToView normalMatrix right)
+transformKDNode worldToView normalMatrix (KDLeaf aabb objects) = KDLeaf (transformShape worldToView normalMatrix aabb) (fmap (transformObject worldToView normalMatrix) objects)
+transformKDNode worldToView normalMatrix (KDBranch v aabb left right) = KDBranch v (transformShape worldToView normalMatrix aabb) (transformKDNode worldToView normalMatrix left) (transformKDNode worldToView normalMatrix right)
 
 -- Scene transformation
 
